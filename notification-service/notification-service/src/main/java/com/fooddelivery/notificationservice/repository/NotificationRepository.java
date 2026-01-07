@@ -1,0 +1,20 @@
+package com.fooddelivery.notificationservice.repository;
+
+import com.fooddelivery.notificationservice.entity.Notification;
+import com.fooddelivery.notificationservice.enums.NotificationStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface NotificationRepository extends JpaRepository<Notification, Long> {
+
+    List<Notification> findByUserId(Long userId);
+
+    List<Notification> findByStatus(NotificationStatus status);
+
+    List<Notification> findByOrderId(Long orderId);
+
+    List<Notification> findByUserIdAndStatus(Long userId, NotificationStatus status);
+}
