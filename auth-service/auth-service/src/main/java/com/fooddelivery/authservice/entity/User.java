@@ -22,6 +22,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = true)  // ← ADD THIS
+    private String name;      // ← ADD THIS
+
     @Column(nullable = false)
     private String password;
 
@@ -32,8 +35,8 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
-    @Column(name = "is_active")
-    private Boolean isActive = true;
+    @Column(name = "active")  // ← Changed from is_active
+    private Boolean active = true;
 
     @Column(name = "is_email_verified")
     private Boolean isEmailVerified = false;
@@ -70,7 +73,6 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
 
-    // Helper method to check if account is locked
     public boolean isAccountLocked() {
         return accountLockedUntil != null && accountLockedUntil.isAfter(LocalDateTime.now());
     }

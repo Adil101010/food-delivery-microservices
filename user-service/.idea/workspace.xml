@@ -4,7 +4,49 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="86b94831-ba3c-4aba-97fd-fdf5970c6d07" name="Changes" comment="" />
+    <list default="true" id="86b94831-ba3c-4aba-97fd-fdf5970c6d07" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../analytics-service/analytics-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../analytics-service/analytics-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/mvnw" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/mvnw.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/src/main/java/com/fooddelivery/api_gateway/ApiGatewayApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/src/main/java/com/fooddelivery/api_gateway/controller/HealthController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/src/main/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../api-gateway/src/test/java/com/fooddelivery/api_gateway/ApiGatewayApplicationTests.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../assignment-service/assignment-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../assignment-service/assignment-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../auth-service/auth-service/src/main/java/com/fooddelivery/authservice/entity/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/../auth-service/auth-service/src/main/java/com/fooddelivery/authservice/entity/User.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../auth-service/auth-service/src/main/java/com/fooddelivery/authservice/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../auth-service/auth-service/src/main/java/com/fooddelivery/authservice/repository/UserRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../auth-service/auth-service/src/main/java/com/fooddelivery/authservice/service/AuthService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../auth-service/auth-service/src/main/java/com/fooddelivery/authservice/service/AuthService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../auth-service/auth-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../auth-service/auth-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../cart-service/cart-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../cart-service/cart-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../delivery-service/delivery-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../delivery-service/delivery-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../location-service/location-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../location-service/location-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../menu-service/menu-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../menu-service/menu-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../notification-service/notification-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../notification-service/notification-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../order-service/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../order-service/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../order-service/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../order-service/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../order-service/order-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../order-service/order-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../payment-service/payment-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../payment-service/payment-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../promo-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../promo-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../restaurant-service/restaurant-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../restaurant-service/restaurant-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../review-service/review-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../review-service/review-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../settlement-service/settlement-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../settlement-service/settlement-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../support-service/support-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../support-service/support-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/user-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/entity/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/entity/User.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/entity/UserRole.java" beforeDir="false" afterPath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/entity/UserRole.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/repository/UserRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/security/JwtUtils.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/service/UserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/user-service/src/main/java/com/fooddelivery/userservice/service/UserService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/user-service/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../wallet-service/wallet-service/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../wallet-service/wallet-service/src/main/resources/application.properties" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -13,40 +55,47 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Adil101010"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Adil101010&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Adil101010/food-delivery-microservices.git",
-    "accountId": "bfe02d84-f987-4554-82d5-f79734c92ab2"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Adil101010/food-delivery-microservices.git&quot;,
+    &quot;accountId&quot;: &quot;bfe02d84-f987-4554-82d5-f79734c92ab2&quot;
   }
-}]]></component>
+}</component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 1
-}]]></component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
   <component name="ProjectId" id="383NFG8zdlzfaBkhVhVhqyBvLlr" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/adils/OneDrive/Desktop/food-delivery-project/user-service"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/adils/OneDrive/Desktop/food-delivery-project/user-service&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;settings.sync&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>

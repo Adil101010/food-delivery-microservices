@@ -61,7 +61,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setPhone(request.getPhone());
         user.setRole(request.getRole());
-        user.setIsActive(true);
+        user.setActive(true);
         user.setIsEmailVerified(false);
         user.setIsPhoneVerified(false);
         user.setFailedLoginAttempts(0);
@@ -113,7 +113,7 @@ public class AuthService {
         }
 
         // Check if account is active
-        if (!user.getIsActive()) {
+        if (!user.getActive()) {
             log.warn("Inactive account login attempt: {}", user.getEmail());
             recordLoginHistory(user.getId(), ipAddress, userAgent, LoginStatus.BLOCKED, "Account inactive");
             throw new CustomException("Account is inactive. Please contact support.");

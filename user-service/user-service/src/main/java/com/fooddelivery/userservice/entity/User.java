@@ -46,4 +46,17 @@ public class User {
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(length = 500)
+    private String address;
+
+    // Getter and Setter
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
 }
