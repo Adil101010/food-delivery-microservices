@@ -7,6 +7,9 @@ import com.fooddelivery.searchservice.entity.Restaurant;
 import com.fooddelivery.searchservice.repository.MenuItemRepository;
 import com.fooddelivery.searchservice.repository.RestaurantRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,37 +17,49 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MenuSearchService {
 
     private final MenuItemRepository menuItemRepository;
     private final RestaurantRepository restaurantRepository;
 
-    // Simple search by name
+    // ✅ ADDED CACHE
+    @Cacheable(value = "menuItems", key = "'search:' + #query", unless = "#result.isEmpty()")
     public List<MenuItemSearchDTO> searchByName(String query) {
+        log.info("Fetching menu items from database for query: {}", query);
         List<MenuItem> menuItems = menuItemRepository.searchByName(query);
         return menuItems.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    // Search by category
+    // ✅ ADDED CACHE
+    @Cacheable(value = "menuItems", key = "'category:' + #category", unless = "#result.isEmpty()")
     public List<MenuItemSearchDTO> searchByCategory(String category) {
+        log.info("Fetching menu items from database for category: {}", category);
         List<MenuItem> menuItems = menuItemRepository.findByCategoryAndIsAvailable(category, true);
         return menuItems.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    // Search by restaurant
+    // ✅ ADDED CACHE
+    @Cacheable(value = "menuItems", key = "'restaurant:' + #restaurantId", unless = "#result.isEmpty()")
     public List<MenuItemSearchDTO> searchByRestaurant(Long restaurantId) {
+        log.info("Fetching menu items from database for restaurant: {}", restaurantId);
         List<MenuItem> menuItems = menuItemRepository.findByRestaurantIdAndIsAvailable(restaurantId, true);
         return menuItems.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    // Search by price range
+    // ✅ ADDED CACHE
+    @Cacheable(value = "menuItems",
+            key = "'price:' + #filters.minPrice + ':' + #filters.maxPrice",
+            unless = "#result.isEmpty()")
     public List<MenuItemSearchDTO> searchByPriceRange(SearchFilters filters) {
+        log.info("Fetching menu items from database for price range: {} - {}",
+                filters.getMinPrice(), filters.getMaxPrice());
         List<MenuItem> menuItems = menuItemRepository.searchByPriceRange(
                 filters.getMinPrice(),
                 filters.getMaxPrice()
@@ -54,8 +69,12 @@ public class MenuSearchService {
                 .collect(Collectors.toList());
     }
 
-    // Advanced menu search
+    // Advanced menu search with cache
+    @Cacheable(value = "searchResults",
+            key = "'menu:' + #filters.query + ':' + #filters.category + ':' + #filters.minPrice + ':' + #filters.maxPrice",
+            unless = "#result.isEmpty()")
     public List<MenuItemSearchDTO> advancedSearch(SearchFilters filters) {
+        log.info("Fetching advanced menu search from database: {}", filters);
         List<MenuItem> menuItems = menuItemRepository.advancedSearch(
                 filters.getQuery(),
                 filters.getCategory(),
@@ -67,23 +86,32 @@ public class MenuSearchService {
                 .collect(Collectors.toList());
     }
 
-    // Get popular items
+    // ✅ ADDED CACHE - Popular items (long TTL)
+    @Cacheable(value = "popularItems", key = "'all'")
     public List<MenuItemSearchDTO> getPopularItems() {
+        log.info("Fetching popular items from database");
         List<MenuItem> menuItems = menuItemRepository.findPopularItems();
         return menuItems.stream()
-                .limit(20) // Limit to top 20
+                .limit(20)
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    // Auto-complete suggestions
+    // Auto-complete
+    @Cacheable(value = "searchResults", key = "'menu-autocomplete:' + #query")
     public List<String> getAutoCompleteSuggestions(String query) {
+        log.info("Fetching menu autocomplete from database: {}", query);
         return menuItemRepository.getAutoCompleteSuggestions(query);
+    }
+
+    // ✅ ADDED CACHE EVICTION
+    @CacheEvict(value = "menuItems", allEntries = true)
+    public void clearMenuCache() {
+        log.info("Clearing menu cache");
     }
 
     // Convert MenuItem entity to DTO
     private MenuItemSearchDTO convertToDTO(MenuItem menuItem) {
-        // Get restaurant name
         String restaurantName = restaurantRepository.findById(menuItem.getRestaurantId())
                 .map(Restaurant::getName)
                 .orElse("Unknown Restaurant");

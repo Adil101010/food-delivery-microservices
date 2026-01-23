@@ -8,7 +8,6 @@ public class SearchServiceApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(SearchServiceApplication.class, args);
-        System.out.println("Search Service Started Successfully on Port 8099!");
+        System.out.println("Search Service with Redis Cache Started Successfully on Port 8099!");
     }
-
 }
