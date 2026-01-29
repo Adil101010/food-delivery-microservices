@@ -6,5 +6,6 @@ public enum PaymentMethod {
     UPI,
     NET_BANKING,
     WALLET,
-    CASH_ON_DELIVERY
+    CASH_ON_DELIVERY,
+    RAZORPAY
 }

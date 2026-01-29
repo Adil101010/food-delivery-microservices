@@ -20,4 +20,15 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByStatus(PaymentStatus status);
 
     List<Payment> findByUserIdAndStatus(Long userId, PaymentStatus status);
+
+    // Razorpay specific methods
+    Optional<Payment> findByRazorpayOrderId(String razorpayOrderId);
+
+    Optional<Payment> findByRazorpayPaymentId(String razorpayPaymentId);
+
+    // Get all payments for an order (in case of multiple attempts)
+    List<Payment> findAllByOrderId(Long orderId);
+
+    // Get latest payment by order ID
+    Optional<Payment> findFirstByOrderIdOrderByCreatedAtDesc(Long orderId);
 }
