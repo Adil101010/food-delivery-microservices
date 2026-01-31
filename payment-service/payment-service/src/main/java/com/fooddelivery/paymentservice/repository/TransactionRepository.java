@@ -1,5 +1,6 @@
 package com.fooddelivery.paymentservice.repository;
 
+import com.fooddelivery.paymentservice.entity.Payment;
 import com.fooddelivery.paymentservice.entity.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -9,7 +10,7 @@ import java.util.List;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
-    List<Transaction> findByPaymentId(Long paymentId);
+    List<Transaction> findByPaymentOrderByCreatedAtDesc(Payment payment);
 
-    List<Transaction> findByOrderId(Long orderId);
+    List<Transaction> findByPayment_IdOrderByCreatedAtDesc(Long paymentId);
 }

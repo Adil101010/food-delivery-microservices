@@ -5,32 +5,34 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class PaymentOrderResponse {
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class PaymentOrderResponse {
     private String razorpayOrderId;
     private Long orderId;
-    private Double amount;
+    private BigDecimal amount;  //  BigDecimal (not Double)
     private String currency;
     private String status;
     private String keyId;
     private String customerName;
     private String customerEmail;
     private String customerPhone;
-
     private PaymentOptions paymentOptions;
+    private LocalDateTime createdAt;
 
     @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
     @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class PaymentOptions {
         private String key;
         private String orderId;
-        private Double amount;
+        private Integer amount;  // Integer (Razorpay uses paise as int)
         private String currency;
         private String name;
         private String description;
@@ -39,9 +41,9 @@ public class PaymentOrderResponse {
         private String callbackUrl;
 
         @Data
-        @NoArgsConstructor
-        @AllArgsConstructor
         @Builder
+        @AllArgsConstructor
+        @NoArgsConstructor
         public static class PrefillData {
             private String name;
             private String email;

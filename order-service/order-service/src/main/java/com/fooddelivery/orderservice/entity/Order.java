@@ -94,4 +94,15 @@ public class Order {
         items.remove(item);
         item.setOrder(null);
     }
+
+    // Add these fields to Order entity
+    @Column(name = "razorpay_order_id")
+    private String razorpayOrderId;
+
+    @Column(name = "razorpay_payment_id")
+    private String razorpayPaymentId;
+
+    @Column(name = "customer_email")
+    private String customerEmail;
+
 }

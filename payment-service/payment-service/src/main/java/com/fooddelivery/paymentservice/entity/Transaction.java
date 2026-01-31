@@ -3,15 +3,15 @@ package com.fooddelivery.paymentservice.entity;
 import com.fooddelivery.paymentservice.enums.PaymentStatus;
 import com.fooddelivery.paymentservice.enums.TransactionType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Transaction {
@@ -20,31 +20,34 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Long paymentId;
-
-    @Column(nullable = false)
-    private Long orderId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id", nullable = false)
+    private Payment payment;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionType type;
 
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal amount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status;
 
-    @Column(nullable = false)
-    private Double amount;
+    @Column(name = "gateway_transaction_id")
+    private String gatewayTransactionId;
 
-    @Column(nullable = false, unique = true)
-    private String transactionId;
+    @Column(name = "description")
+    private String description;
 
-    @Column(length = 1000)
-    private String gatewayResponse;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-    private String message;
-
-    @Column(nullable = false)
-    private LocalDateTime timestamp;
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

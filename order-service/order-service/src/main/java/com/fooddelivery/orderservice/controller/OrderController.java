@@ -1,12 +1,16 @@
 package com.fooddelivery.orderservice.controller;
 
+import com.fooddelivery.orderservice.dto.ApiResponse;
 import com.fooddelivery.orderservice.dto.CreateOrderRequest;
 import com.fooddelivery.orderservice.dto.MessageResponse;
 import com.fooddelivery.orderservice.dto.OrderResponse;
+import com.fooddelivery.orderservice.dto.OrderWithPaymentResponse;
+import com.fooddelivery.orderservice.dto.PaymentStatusUpdateRequest;
 import com.fooddelivery.orderservice.enums.OrderStatus;
 import com.fooddelivery.orderservice.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,65 +20,103 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@Slf4j
 public class OrderController {
 
     private final OrderService orderService;
 
-    // Health Check
     @GetMapping("/health")
-    public ResponseEntity<MessageResponse> healthCheck() {
-        return ResponseEntity.ok(new MessageResponse("Order Service is running"));
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("Order Service is running");
     }
 
-    // Create Order
-    @PostMapping("/create")
-    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
-        OrderResponse order = orderService.createOrder(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(order);
+    @PostMapping
+    public ResponseEntity<ApiResponse<OrderWithPaymentResponse>> createOrder(
+            @Valid @RequestBody CreateOrderRequest request) {
+
+        log.info("Received create order request for user: {}", request.getUserId());
+
+        OrderWithPaymentResponse response = orderService.createOrder(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Order created successfully", response));
     }
 
-    // Get Order by ID
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long orderId) {
-        OrderResponse order = orderService.getOrderById(orderId);
-        return ResponseEntity.ok(order);
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable Long orderId) {
+
+        log.info("Fetching order with ID: {}", orderId);
+
+        OrderResponse response = orderService.getOrderById(orderId);
+
+        return ResponseEntity.ok(ApiResponse.success("Order retrieved successfully", response));
     }
 
-    // Get User Orders
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<OrderResponse>> getUserOrders(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getUserOrders(@PathVariable Long userId) {
+
+        log.info("Fetching orders for user: {}", userId);
+
         List<OrderResponse> orders = orderService.getUserOrders(userId);
-        return ResponseEntity.ok(orders);
+
+        return ResponseEntity.ok(ApiResponse.success("User orders retrieved successfully", orders));
     }
 
-    // Get Restaurant Orders
     @GetMapping("/restaurant/{restaurantId}")
-    public ResponseEntity<List<OrderResponse>> getRestaurantOrders(@PathVariable Long restaurantId) {
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getRestaurantOrders(@PathVariable Long restaurantId) {
+
+        log.info("Fetching orders for restaurant: {}", restaurantId);
+
         List<OrderResponse> orders = orderService.getRestaurantOrders(restaurantId);
-        return ResponseEntity.ok(orders);
+
+        return ResponseEntity.ok(ApiResponse.success("Restaurant orders retrieved successfully", orders));
     }
 
-    // Update Order Status
-    @PatchMapping("/{orderId}/status")
-    public ResponseEntity<OrderResponse> updateOrderStatus(
+    @PutMapping("/{orderId}/status")
+    public ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatus(
             @PathVariable Long orderId,
             @RequestParam OrderStatus status) {
-        OrderResponse order = orderService.updateOrderStatus(orderId, status);
-        return ResponseEntity.ok(order);
+
+        log.info("Updating order {} status to: {}", orderId, status);
+
+        OrderResponse response = orderService.updateOrderStatus(orderId, status);
+
+        return ResponseEntity.ok(ApiResponse.success("Order status updated successfully", response));
     }
 
-    // Cancel Order
     @PostMapping("/{orderId}/cancel")
-    public ResponseEntity<MessageResponse> cancelOrder(@PathVariable Long orderId) {
+    public ResponseEntity<ApiResponse<MessageResponse>> cancelOrder(@PathVariable Long orderId) {
+
+        log.info("Cancelling order: {}", orderId);
+
         MessageResponse response = orderService.cancelOrder(orderId);
-        return ResponseEntity.ok(response);
+
+        return ResponseEntity.ok(ApiResponse.success("Order cancelled successfully", response));
     }
 
-    // Get Orders by Status
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<OrderResponse>> getOrdersByStatus(@PathVariable OrderStatus status) {
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getOrdersByStatus(@PathVariable OrderStatus status) {
+
+        log.info("Fetching orders with status: {}", status);
+
         List<OrderResponse> orders = orderService.getOrdersByStatus(status);
-        return ResponseEntity.ok(orders);
+
+        return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
+    }
+
+    @PostMapping("/webhook/payment-status")
+    public ResponseEntity<ApiResponse<OrderResponse>> updatePaymentStatus(
+            @RequestBody PaymentStatusUpdateRequest request) {
+
+        log.info("Received payment status update for order: {} - Status: {}",
+                request.getOrderId(), request.getPaymentStatus());
+
+        OrderResponse response = orderService.updatePaymentStatus(
+                request.getOrderId(),
+                request.getPaymentStatus(),
+                request.getRazorpayPaymentId()
+        );
+
+        return ResponseEntity.ok(ApiResponse.success("Payment status updated successfully", response));
     }
 }

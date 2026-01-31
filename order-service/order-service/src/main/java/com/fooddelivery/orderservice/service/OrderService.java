@@ -1,5 +1,6 @@
 package com.fooddelivery.orderservice.service;
 
+import com.fooddelivery.orderservice.client.PaymentClient;
 import com.fooddelivery.orderservice.dto.*;
 import com.fooddelivery.orderservice.entity.Order;
 import com.fooddelivery.orderservice.entity.OrderItem;
@@ -7,6 +8,7 @@ import com.fooddelivery.orderservice.enums.OrderStatus;
 import com.fooddelivery.orderservice.enums.PaymentStatus;
 import com.fooddelivery.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,13 +18,18 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final PaymentClient paymentClient;
 
-    // Create Order
+    /**
+     * Create Order with Payment Integration
+     */
     @Transactional
-    public OrderResponse createOrder(CreateOrderRequest request) {
+    public OrderWithPaymentResponse createOrder(CreateOrderRequest request) {
+        log.info("Creating order for user: {}", request.getUserId());
 
         // Calculate amounts
         double subtotal = request.getItems().stream()
@@ -50,7 +57,7 @@ public class OrderService {
         order.setDeliveryInstructions(request.getDeliveryInstructions());
         order.setCustomerPhone(request.getCustomerPhone());
         order.setCustomerName(request.getCustomerName());
-        order.setEstimatedDeliveryTime(LocalDateTime.now().plusMinutes(45)); // 45 min estimate
+        order.setEstimatedDeliveryTime(LocalDateTime.now().plusMinutes(45));
 
         // Add Order Items
         for (OrderItemRequest itemRequest : request.getItems()) {
@@ -66,42 +73,90 @@ public class OrderService {
 
         // Save Order
         Order savedOrder = orderRepository.save(order);
+        log.info("Order created with ID: {}", savedOrder.getId());
 
-        return convertToResponse(savedOrder);
+        // Create Payment Order
+        PaymentOrderResponse paymentResponse = null;
+        try {
+            PaymentOrderRequest paymentRequest = PaymentOrderRequest.builder()
+                    .orderId(savedOrder.getId())
+                    .userId(savedOrder.getUserId())
+                    .amount(savedOrder.getTotalAmount())
+                    .customerName(savedOrder.getCustomerName())
+                    .customerEmail(request.getCustomerEmail())
+                    .customerPhone(savedOrder.getCustomerPhone())
+                    .build();
+
+            paymentResponse = paymentClient.createPaymentOrder(paymentRequest);
+            log.info("Payment order created: {}", paymentResponse.getRazorpayOrderId());
+
+            // Store Razorpay Order ID in Order
+            savedOrder.setRazorpayOrderId(paymentResponse.getRazorpayOrderId());
+            orderRepository.save(savedOrder);
+
+        } catch (Exception e) {
+            log.error("Failed to create payment order: {}", e.getMessage(), e);
+        }
+
+        return OrderWithPaymentResponse.builder()
+                .order(convertToResponse(savedOrder))
+                .payment(paymentResponse)
+                .build();
     }
 
-    // Get Order by ID
+    /**
+     * Get Order by ID
+     */
+    @Transactional(readOnly = true)
     public OrderResponse getOrderById(Long orderId) {
+        log.info("Fetching order with ID: {}", orderId);
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+
         return convertToResponse(order);
     }
 
-    // Get User Orders
+    /**
+     * Get User Orders
+     */
+    @Transactional(readOnly = true)
     public List<OrderResponse> getUserOrders(Long userId) {
+        log.info("Fetching orders for user: {}", userId);
+
         List<Order> orders = orderRepository.findByUserId(userId);
+
         return orders.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    // Get Restaurant Orders
+    /**
+     * Get Restaurant Orders
+     */
+    @Transactional(readOnly = true)
     public List<OrderResponse> getRestaurantOrders(Long restaurantId) {
+        log.info("Fetching orders for restaurant: {}", restaurantId);
+
         List<Order> orders = orderRepository.findByRestaurantId(restaurantId);
+
         return orders.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    // Update Order Status
+    /**
+     * Update Order Status
+     */
     @Transactional
     public OrderResponse updateOrderStatus(Long orderId, OrderStatus newStatus) {
+        log.info("Updating order {} status to: {}", orderId, newStatus);
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
 
         order.setOrderStatus(newStatus);
 
-        // If delivered, set delivered time
         if (newStatus == OrderStatus.DELIVERED) {
             order.setDeliveredAt(LocalDateTime.now());
             order.setPaymentStatus(PaymentStatus.PAID);
@@ -111,13 +166,42 @@ public class OrderService {
         return convertToResponse(updatedOrder);
     }
 
-    // Cancel Order
+    /**
+     * Update Payment Status (Called by Payment Service Webhook)
+     */
     @Transactional
-    public MessageResponse cancelOrder(Long orderId) {
+    public OrderResponse updatePaymentStatus(Long orderId, PaymentStatus paymentStatus, String razorpayPaymentId) {
+        log.info("Updating payment status for order: {} to {}", orderId, paymentStatus);
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
 
-        // Can only cancel if not delivered
+        order.setPaymentStatus(paymentStatus);
+        order.setRazorpayPaymentId(razorpayPaymentId);
+
+        // If payment successful, confirm order
+        if (paymentStatus == PaymentStatus.PAID) {
+            order.setOrderStatus(OrderStatus.CONFIRMED);
+            log.info("Order {} confirmed after successful payment", orderId);
+        } else if (paymentStatus == PaymentStatus.FAILED) {
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            log.warn("Order {} cancelled due to payment failure", orderId);
+        }
+
+        Order updatedOrder = orderRepository.save(order);
+        return convertToResponse(updatedOrder);
+    }
+
+    /**
+     * Cancel Order
+     */
+    @Transactional
+    public MessageResponse cancelOrder(Long orderId) {
+        log.info("Cancelling order: {}", orderId);
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+
         if (order.getOrderStatus() == OrderStatus.DELIVERED) {
             throw new RuntimeException("Cannot cancel delivered order");
         }
@@ -128,15 +212,23 @@ public class OrderService {
         return new MessageResponse("Order cancelled successfully");
     }
 
-    // Get Orders by Status
+    /**
+     * Get Orders by Status
+     */
+    @Transactional(readOnly = true)
     public List<OrderResponse> getOrdersByStatus(OrderStatus status) {
+        log.info("Fetching orders with status: {}", status);
+
         List<Order> orders = orderRepository.findByOrderStatus(status);
+
         return orders.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    // Helper Method: Convert Entity to Response DTO
+    /**
+     * Helper Method: Convert Entity to Response DTO
+     */
     private OrderResponse convertToResponse(Order order) {
         OrderResponse response = new OrderResponse();
         response.setId(order.getId());
@@ -160,7 +252,7 @@ public class OrderService {
         response.setCreatedAt(order.getCreatedAt());
         response.setUpdatedAt(order.getUpdatedAt());
 
-        // Convert OrderItems
+        // Map order items
         List<OrderItemResponse> itemResponses = order.getItems().stream()
                 .map(item -> new OrderItemResponse(
                         item.getId(),

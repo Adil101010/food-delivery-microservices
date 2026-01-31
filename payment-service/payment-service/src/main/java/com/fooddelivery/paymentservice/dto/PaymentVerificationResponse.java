@@ -5,17 +5,20 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class PaymentVerificationResponse {
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class PaymentVerificationResponse {
     private Boolean verified;
     private String message;
     private String paymentId;
     private String orderId;
     private String status;
-    private Double amount;
+    private BigDecimal amount;
     private String transactionId;
+    private LocalDateTime paidAt;
 }

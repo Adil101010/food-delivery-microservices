@@ -25,211 +25,174 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final RazorpayService razorpayService;
 
-    // Health Check
     @GetMapping("/health")
-    public ResponseEntity<MessageResponse> healthCheck() {
-        return ResponseEntity.ok(new MessageResponse("Payment Service is running"));
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<MessageResponse>> healthCheck() {
+        log.info("Health check requested");
+        MessageResponse message = new MessageResponse("Payment Service is running");
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Service is healthy", message));
     }
 
-    // Create Payment
     @PostMapping("/create")
-    public ResponseEntity<PaymentResponse> createPayment(
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentResponse>> createPayment(
             @Valid @RequestBody CreatePaymentRequest request) {
+        log.info("Creating payment for orderId: {}, userId: {}", request.getOrderId(), request.getUserId());
         PaymentResponse payment = paymentService.createPayment(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(payment);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment created successfully", payment));
     }
 
-    // Process Payment (Mock gateway processing)
     @PostMapping("/{paymentId}/process")
-    public ResponseEntity<PaymentResponse> processPayment(@PathVariable Long paymentId) {
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentResponse>> processPayment(
+            @PathVariable Long paymentId) {
+        log.info("Processing payment: {}", paymentId);
         PaymentResponse payment = paymentService.processPayment(paymentId);
-        return ResponseEntity.ok(payment);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment processed successfully", payment));
     }
 
-    // Verify Payment (Gateway callback)
     @PostMapping("/verify")
-    public ResponseEntity<PaymentResponse> verifyPayment(
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentResponse>> verifyPayment(
             @Valid @RequestBody VerifyPaymentRequest request) {
+        log.info("Verifying payment for paymentId: {}", request.getPaymentId());
         PaymentResponse payment = paymentService.verifyPayment(request);
-        return ResponseEntity.ok(payment);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment verified successfully", payment));
     }
 
-    // Process Refund
     @PostMapping("/refund")
-    public ResponseEntity<PaymentResponse> processRefund(
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentResponse>> processRefund(
             @Valid @RequestBody RefundRequest request) {
+        log.info("Processing refund for paymentId: {}", request.getPaymentId());
         PaymentResponse payment = paymentService.processRefund(request);
-        return ResponseEntity.ok(payment);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Refund processed successfully", payment));
     }
 
-    // Get Payment by ID
     @GetMapping("/{id}")
-    public ResponseEntity<PaymentResponse> getPaymentById(@PathVariable Long id) {
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentResponse>> getPaymentById(@PathVariable Long id) {
+        log.info("Fetching payment by id: {}", id);
         PaymentResponse payment = paymentService.getPaymentById(id);
-        return ResponseEntity.ok(payment);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment retrieved successfully", payment));
     }
 
-    // Get Payment by Order ID
     @GetMapping("/order/{orderId}")
-    public ResponseEntity<PaymentResponse> getPaymentByOrderId(@PathVariable Long orderId) {
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentResponse>> getPaymentByOrderId(@PathVariable Long orderId) {
+        log.info("Fetching payment by orderId: {}", orderId);
         PaymentResponse payment = paymentService.getPaymentByOrderId(orderId);
-        return ResponseEntity.ok(payment);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment retrieved successfully", payment));
     }
 
-    // Get User Payments
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<PaymentResponse>> getUserPayments(@PathVariable Long userId) {
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<List<PaymentResponse>>> getUserPayments(@PathVariable Long userId) {
+        log.info("Fetching payments for userId: {}", userId);
         List<PaymentResponse> payments = paymentService.getUserPayments(userId);
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("User payments retrieved successfully", payments));
     }
 
-    // Get Payment Transactions (History)
     @GetMapping("/{paymentId}/transactions")
-    public ResponseEntity<List<TransactionResponse>> getPaymentTransactions(@PathVariable Long paymentId) {
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<List<TransactionResponse>>> getPaymentTransactions(@PathVariable Long paymentId) {
+        log.info("Fetching transactions for paymentId: {}", paymentId);
         List<TransactionResponse> transactions = paymentService.getPaymentTransactions(paymentId);
-        return ResponseEntity.ok(transactions);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Transaction history retrieved successfully", transactions));
     }
 
-    // ============================================
-    // RAZORPAY INTEGRATION ENDPOINTS
-    // ============================================
-
-    // Create Razorpay Order
     @PostMapping("/razorpay/create-order")
-    public ResponseEntity<PaymentOrderResponse> createRazorpayOrder(
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentOrderResponse>> createRazorpayOrder(
             @Valid @RequestBody PaymentOrderRequest request) {
-
-        log.info("Creating Razorpay payment order: {}", request);
-
-        try {
-            PaymentOrderResponse response = razorpayService.createOrder(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error creating Razorpay order: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        log.info("Creating Razorpay order for orderId: {}, amount: {}", request.getOrderId(), request.getAmount());
+        PaymentOrderResponse response = razorpayService.createOrder(request);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Razorpay order created successfully", response));
     }
 
-    // Verify Razorpay Payment
-    @PostMapping("/razorpay/verify")
-    public ResponseEntity<PaymentVerificationResponse> verifyRazorpayPayment(
-            @Valid @RequestBody PaymentVerificationRequest request) {
-
-        log.info("Verifying Razorpay payment: {}", request);
-
-        try {
-            PaymentVerificationResponse response = razorpayService.verifyPayment(request);
-
-            if (response.getVerified()) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-        } catch (Exception e) {
-            log.error("Error verifying Razorpay payment: {}", e.getMessage());
-
-            PaymentVerificationResponse errorResponse = PaymentVerificationResponse.builder()
-                    .verified(false)
-                    .message("Payment verification failed: " + e.getMessage())
-                    .status("FAILED")
-                    .build();
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-
-    // Verify Razorpay Payment (Frontend endpoint) - ADD THIS
     @PostMapping("/razorpay/verify-payment")
-    public ResponseEntity<PaymentVerificationResponse> verifyRazorpayPaymentFrontend(
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentVerificationResponse>> verifyRazorpayPayment(
             @Valid @RequestBody PaymentVerificationRequest request) {
-
-        log.info("Verifying Razorpay payment from frontend: {}", request);
-
-        try {
-            PaymentVerificationResponse response = razorpayService.verifyPayment(request);
-
-            if (response.getVerified()) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
-        } catch (Exception e) {
-            log.error("Error verifying Razorpay payment: {}", e.getMessage());
-
-            PaymentVerificationResponse errorResponse = PaymentVerificationResponse.builder()
-                    .verified(false)
-                    .message("Payment verification failed: " + e.getMessage())
-                    .status("FAILED")
-                    .build();
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+        log.info("Verifying Razorpay payment for orderId: {}, paymentId: {}", request.getRazorpayOrderId(), request.getRazorpayPaymentId());
+        PaymentVerificationResponse response = razorpayService.verifyPayment(request);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment verified successfully", response));
     }
 
-    // Get Payment by Razorpay Order ID
+    @PostMapping("/razorpay/verify")
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentVerificationResponse>> verifyRazorpayPaymentAlternative(
+            @Valid @RequestBody PaymentVerificationRequest request) {
+        log.info("Verifying Razorpay payment (alternative endpoint) for orderId: {}", request.getRazorpayOrderId());
+        PaymentVerificationResponse response = razorpayService.verifyPayment(request);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment verified successfully", response));
+    }
+
     @GetMapping("/razorpay/order/{razorpayOrderId}")
-    public ResponseEntity<Payment> getPaymentByRazorpayOrderId(
-            @PathVariable String razorpayOrderId) {
-
-        try {
-            Payment payment = razorpayService.getPaymentByRazorpayOrderId(razorpayOrderId);
-            return ResponseEntity.ok(payment);
-        } catch (Exception e) {
-            log.error("Payment not found for Razorpay order: {}", razorpayOrderId);
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<Payment>> getPaymentByRazorpayOrderId(@PathVariable String razorpayOrderId) {
+        log.info("Fetching payment by razorpayOrderId: {}", razorpayOrderId);
+        Payment payment = razorpayService.getPaymentByRazorpayOrderId(razorpayOrderId);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment retrieved successfully", payment));
     }
 
-    // Get Payment by Food Order ID
     @GetMapping("/razorpay/food-order/{orderId}")
-    public ResponseEntity<Payment> getPaymentByFoodOrderId(@PathVariable Long orderId) {
-        try {
-            Payment payment = razorpayService.getPaymentByOrderId(orderId);
-            return ResponseEntity.ok(payment);
-        } catch (Exception e) {
-            log.error("Payment not found for order: {}", orderId);
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<Payment>> getPaymentByFoodOrderId(@PathVariable Long orderId) {
+        log.info("Fetching payment by food orderId: {}", orderId);
+        Payment payment = razorpayService.getPaymentByOrderId(orderId);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment retrieved successfully", payment));
     }
 
-    // Razorpay Payment Callback
     @PostMapping("/razorpay/callback")
-    public ResponseEntity<Map<String, String>> razorpayCallback(
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<Map<String, String>>> razorpayCallback(
             @RequestParam("razorpay_order_id") String razorpayOrderId,
             @RequestParam("razorpay_payment_id") String razorpayPaymentId,
             @RequestParam("razorpay_signature") String razorpaySignature) {
+        log.info("Razorpay callback received - orderId: {}, paymentId: {}", razorpayOrderId, razorpayPaymentId);
 
-        log.info("Razorpay callback received: orderId={}, paymentId={}",
-                razorpayOrderId, razorpayPaymentId);
-
-        PaymentVerificationRequest request = new PaymentVerificationRequest(
-                razorpayOrderId, razorpayPaymentId, razorpaySignature, null
-        );
+        PaymentVerificationRequest request = PaymentVerificationRequest.builder()
+                .razorpayOrderId(razorpayOrderId)
+                .razorpayPaymentId(razorpayPaymentId)
+                .razorpaySignature(razorpaySignature)
+                .build();
 
         PaymentVerificationResponse response = razorpayService.verifyPayment(request);
 
         Map<String, String> result = new HashMap<>();
-        result.put("status", response.getVerified() ? "success" : "failed");
+        result.put("status", response.getVerified() ? "SUCCESS" : "FAILED");
         result.put("message", response.getMessage());
+        result.put("paymentId", response.getPaymentId());
+        result.put("orderId", response.getOrderId());
 
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success(response.getMessage(), result));
     }
 
-    // Success Page (for redirect)
     @GetMapping("/razorpay/success")
-    public ResponseEntity<Map<String, String>> razorpaySuccess() {
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<Map<String, String>>> razorpaySuccess(
+            @RequestParam(required = false) String paymentId,
+            @RequestParam(required = false) String orderId) {
+        log.info("Payment success page accessed - paymentId: {}, orderId: {}", paymentId, orderId);
+
         Map<String, String> response = new HashMap<>();
-        response.put("status", "success");
+        response.put("status", "SUCCESS");
         response.put("message", "Payment completed successfully!");
-        return ResponseEntity.ok(response);
+        response.put("title", "Payment Successful");
+
+        if (paymentId != null) response.put("paymentId", paymentId);
+        if (orderId != null) response.put("orderId", orderId);
+
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Payment successful", response));
     }
 
-    // Failure Page (for redirect)
     @GetMapping("/razorpay/failure")
-    public ResponseEntity<Map<String, String>> razorpayFailure() {
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<Map<String, String>>> razorpayFailure(
+            @RequestParam(required = false) String error,
+            @RequestParam(required = false) String orderId) {
+        log.warn("Payment failure page accessed - error: {}, orderId: {}", error, orderId);
+
         Map<String, String> response = new HashMap<>();
-        response.put("status", "failed");
+        response.put("status", "FAILED");
         response.put("message", "Payment failed. Please try again.");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        response.put("title", "Payment Failed");
+
+        if (error != null) response.put("error", error);
+        if (orderId != null) response.put("orderId", orderId);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(com.fooddelivery.paymentservice.dto.ApiResponse.error("Payment failed"));
+    }
+
+    @PostMapping("/{paymentId}/cancel")
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<MessageResponse>> cancelPayment(@PathVariable Long paymentId) {
+        log.info("Cancelling payment: {}", paymentId);
+        MessageResponse message = new MessageResponse("Payment cancellation feature coming soon");
+        return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Request processed", message));
     }
 }
