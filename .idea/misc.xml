@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="MavenProjectsManager">
+    <option name="originalFiles">
+      <list>
+        <option value="$PROJECT_DIR$/api-gateway/api-gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/auth-service/auth-service/pom.xml" />
+        <option value="$PROJECT_DIR$/cart-service/cart-service/pom.xml" />
+        <option value="$PROJECT_DIR$/menu-service/menu-service/pom.xml" />
+        <option value="$PROJECT_DIR$/user-service/user-service/pom.xml" />
+        <option value="$PROJECT_DIR$/admin-service/admin-service/pom.xml" />
+        <option value="$PROJECT_DIR$/order-service/order-service/pom.xml" />
+        <option value="$PROJECT_DIR$/promo-service/pom.xml" />
+        <option value="$PROJECT_DIR$/review-service/review-service/pom.xml" />
+        <option value="$PROJECT_DIR$/search-service/search-service/pom.xml" />
+        <option value="$PROJECT_DIR$/wallet-service/wallet-service/pom.xml" />
+        <option value="$PROJECT_DIR$/payment-service/payment-service/pom.xml" />
+        <option value="$PROJECT_DIR$/support-service/support-service/pom.xml" />
+        <option value="$PROJECT_DIR$/delivery-service/delivery-service/pom.xml" />
+        <option value="$PROJECT_DIR$/location-service/location-service/pom.xml" />
+        <option value="$PROJECT_DIR$/analytics-service/analytics-service/pom.xml" />
+        <option value="$PROJECT_DIR$/assignment-service/assignment-service/pom.xml" />
+        <option value="$PROJECT_DIR$/restaurant-service/restaurant-service/pom.xml" />
+        <option value="$PROJECT_DIR$/settlement-service/settlement-service/pom.xml" />
+        <option value="$PROJECT_DIR$/notification-service/notification-service/pom.xml" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_19" default="true" project-jdk-name="19" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+</project>

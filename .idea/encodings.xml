@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/admin-service/admin-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/analytics-service/analytics-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/api-gateway/api-gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/assignment-service/assignment-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/auth-service/auth-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/cart-service/cart-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/delivery-service/delivery-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/location-service/location-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/menu-service/menu-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/notification-service/notification-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/order-service/order-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/payment-service/payment-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/promo-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/restaurant-service/restaurant-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/review-service/review-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/search-service/search-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/settlement-service/settlement-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/support-service/support-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/user-service/user-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/wallet-service/wallet-service/src/main/java" charset="UTF-8" />
+  </component>
+</project>
