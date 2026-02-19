@@ -15,5 +15,6 @@ public enum Category {
     SANDWICH,
     BREAKFAST,
     SNACKS,
-    SPECIAL
+    SPECIAL,
+    SIDE_DISH
 }

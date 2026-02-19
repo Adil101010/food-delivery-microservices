@@ -98,4 +98,12 @@ public class DeliveryController {
         List<DeliveryResponse> deliveries = deliveryService.getCustomerDeliveries(customerId);
         return ResponseEntity.ok(deliveries);
     }
+    // ✅ Order service ya manually call kar sake
+    @PostMapping("/order/{orderId}/create-pending")
+    public ResponseEntity<DeliveryResponse> createPendingDelivery(
+            @PathVariable Long orderId) {
+        DeliveryResponse delivery = deliveryService.createPendingDelivery(orderId);
+        return ResponseEntity.ok(delivery);
+    }
+
 }

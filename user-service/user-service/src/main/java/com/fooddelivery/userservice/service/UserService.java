@@ -3,7 +3,7 @@ package com.fooddelivery.userservice.service;
 import com.fooddelivery.userservice.dto.AuthResponse;
 import com.fooddelivery.userservice.dto.LoginRequest;
 import com.fooddelivery.userservice.dto.SignupRequest;
-import com.fooddelivery.userservice.dto.UserResponse;  // ← ADD THIS
+import com.fooddelivery.userservice.dto.UserResponse;
 import com.fooddelivery.userservice.entity.User;
 import com.fooddelivery.userservice.repository.UserRepository;
 import com.fooddelivery.userservice.security.JwtUtils;
@@ -12,8 +12,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;  // ← ADD THIS
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -76,14 +77,12 @@ public class UserService {
         );
     }
 
-    // ← UPDATED METHOD
     public UserResponse getUserById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         return convertToResponse(user);
     }
 
-    // ← UPDATED METHOD
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(this::convertToResponse)
@@ -112,10 +111,31 @@ public class UserService {
             return userRepository.save(user);
         }
 
-        return null;
+        throw new RuntimeException("User not found with id: " + id);
     }
 
-    // ← ADD THIS CONVERTER METHOD
+    public UserResponse updateUserProfile(Long userId, Map<String, String> updates) {
+        System.out.println("Updating user profile for ID: " + userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        // Update name if provided
+        if (updates.containsKey("name") && updates.get("name") != null && !updates.get("name").isEmpty()) {
+            user.setName(updates.get("name"));
+        }
+
+        // Update phone if provided
+        if (updates.containsKey("phone") && updates.get("phone") != null && !updates.get("phone").isEmpty()) {
+            user.setPhone(updates.get("phone"));
+        }
+
+        User updatedUser = userRepository.save(user);
+        System.out.println("User profile updated successfully: " + updatedUser.getName());
+
+        return convertToResponse(updatedUser);
+    }
+
     private UserResponse convertToResponse(User user) {
         UserResponse response = new UserResponse();
         response.setUserId(user.getId());
@@ -126,7 +146,26 @@ public class UserService {
         response.setActive(user.getActive());
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
-        response.setAddress(user.getAddress() != null ? user.getAddress().toString() : null);
+
+        // Handle address safely
+        if (user.getAddress() != null) {
+            response.setAddress(user.getAddress().toString());
+        }
+
         return response;
     }
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Current password verify karo
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        // New password set karo
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
 }

@@ -9,7 +9,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "deliveries")
 @Data
@@ -24,47 +23,26 @@ public class Delivery {
     @Column(nullable = false, unique = true)
     private Long orderId;
 
-    @Column(nullable = false)
     private Long partnerId;
-
-    @Column(nullable = false)
     private Long restaurantId;
-
-    @Column(nullable = false)
     private Long customerId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private DeliveryStatus status = DeliveryStatus.ASSIGNED;
+    @Column(nullable = false, columnDefinition = "VARCHAR(50) DEFAULT 'PENDING'")
+    private String status = "PENDING";  // ✅ String — no enum mapping issue
 
-    @Column(nullable = false)
     private String pickupAddress;
-
-    @Column(nullable = false)
     private String deliveryAddress;
-
-    @Column(nullable = false)
     private Double deliveryFee;
-
-    private Double distance; // in KM
-
+    private Double distance;
     private String customerPhone;
-
     private String deliveryInstructions;
-
     private LocalDateTime assignedAt;
-
     private LocalDateTime acceptedAt;
-
     private LocalDateTime pickedUpAt;
-
     private LocalDateTime deliveredAt;
-
-    private Integer estimatedTime; // in minutes
-
+    private Integer estimatedTime;
     private String rejectionReason;
-
-    private Double partnerEarning; // Partner's share
+    private Double partnerEarning;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

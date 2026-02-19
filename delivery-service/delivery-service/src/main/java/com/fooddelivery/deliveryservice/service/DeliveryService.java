@@ -6,13 +6,16 @@ import com.fooddelivery.deliveryservice.entity.Delivery;
 import com.fooddelivery.deliveryservice.enums.DeliveryStatus;
 import com.fooddelivery.deliveryservice.repository.DeliveryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DeliveryService {
@@ -20,16 +23,29 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final DeliveryPartnerService partnerService;
 
-    // Assign Delivery to Partner
+    @Transactional
+    public DeliveryResponse createPendingDelivery(Long orderId) {
+        Optional<Delivery> existing = deliveryRepository.findByOrderId(orderId);
+        if (existing.isPresent()) {
+            log.info("⚠️ Delivery already exists for order: {}", orderId);
+            return convertToResponse(existing.get());
+        }
+
+        Delivery delivery = new Delivery();
+        delivery.setOrderId(orderId);
+        delivery.setStatus(DeliveryStatus.PENDING.name()); // ✅ .name()
+
+        Delivery saved = deliveryRepository.save(delivery);
+        log.info("✅ Pending delivery created for order: {}", orderId);
+        return convertToResponse(saved);
+    }
+
     @Transactional
     public DeliveryResponse assignDelivery(AssignDeliveryRequest request) {
-
-        // Check if order already has delivery assigned
         if (deliveryRepository.findByOrderId(request.getOrderId()).isPresent()) {
             throw new RuntimeException("Delivery already assigned for this order");
         }
 
-        // Calculate partner earning (70% of delivery fee)
         Double partnerEarning = request.getDeliveryFee() * 0.7;
 
         Delivery delivery = new Delivery();
@@ -43,126 +59,100 @@ public class DeliveryService {
         delivery.setDistance(request.getDistance());
         delivery.setCustomerPhone(request.getCustomerPhone());
         delivery.setDeliveryInstructions(request.getDeliveryInstructions());
-        delivery.setEstimatedTime(request.getEstimatedTime() != null ? request.getEstimatedTime() : 30);
+        delivery.setEstimatedTime(
+                request.getEstimatedTime() != null ? request.getEstimatedTime() : 30
+        );
         delivery.setPartnerEarning(partnerEarning);
-        delivery.setStatus(DeliveryStatus.ASSIGNED);
+        delivery.setStatus(DeliveryStatus.ASSIGNED.name()); // ✅ .name()
         delivery.setAssignedAt(LocalDateTime.now());
 
-        Delivery savedDelivery = deliveryRepository.save(delivery);
-        return convertToResponse(savedDelivery);
+        return convertToResponse(deliveryRepository.save(delivery));
     }
 
-    // Accept Delivery
     @Transactional
     public DeliveryResponse acceptDelivery(Long deliveryId) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new RuntimeException("Delivery not found"));
-
-        if (delivery.getStatus() != DeliveryStatus.ASSIGNED) {
+        Delivery delivery = findById(deliveryId);
+        if (!delivery.getStatus().equals(DeliveryStatus.ASSIGNED.name())) { // ✅ .equals()
             throw new RuntimeException("Delivery cannot be accepted in current status");
         }
-
-        delivery.setStatus(DeliveryStatus.ACCEPTED);
+        delivery.setStatus(DeliveryStatus.ACCEPTED.name()); // ✅ .name()
         delivery.setAcceptedAt(LocalDateTime.now());
-
-        Delivery updatedDelivery = deliveryRepository.save(delivery);
-        return convertToResponse(updatedDelivery);
+        return convertToResponse(deliveryRepository.save(delivery));
     }
 
-    // Reject Delivery
     @Transactional
     public DeliveryResponse rejectDelivery(Long deliveryId, String reason) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new RuntimeException("Delivery not found"));
-
-        if (delivery.getStatus() != DeliveryStatus.ASSIGNED) {
+        Delivery delivery = findById(deliveryId);
+        if (!delivery.getStatus().equals(DeliveryStatus.ASSIGNED.name())) { // ✅ .equals()
             throw new RuntimeException("Delivery cannot be rejected in current status");
         }
-
-        delivery.setStatus(DeliveryStatus.REJECTED);
+        delivery.setStatus(DeliveryStatus.REJECTED.name()); // ✅ .name()
         delivery.setRejectionReason(reason);
-
-        Delivery updatedDelivery = deliveryRepository.save(delivery);
-        return convertToResponse(updatedDelivery);
+        return convertToResponse(deliveryRepository.save(delivery));
     }
 
-    // Mark Picked Up
     @Transactional
     public DeliveryResponse markPickedUp(Long deliveryId) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new RuntimeException("Delivery not found"));
-
-        delivery.setStatus(DeliveryStatus.PICKED_UP);
+        Delivery delivery = findById(deliveryId);
+        delivery.setStatus(DeliveryStatus.PICKED_UP.name()); // ✅ .name()
         delivery.setPickedUpAt(LocalDateTime.now());
-
-        Delivery updatedDelivery = deliveryRepository.save(delivery);
-        return convertToResponse(updatedDelivery);
+        return convertToResponse(deliveryRepository.save(delivery));
     }
 
-    // Mark In Transit
     @Transactional
     public DeliveryResponse markInTransit(Long deliveryId) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new RuntimeException("Delivery not found"));
-
-        delivery.setStatus(DeliveryStatus.IN_TRANSIT);
-
-        Delivery updatedDelivery = deliveryRepository.save(delivery);
-        return convertToResponse(updatedDelivery);
+        Delivery delivery = findById(deliveryId);
+        delivery.setStatus(DeliveryStatus.IN_TRANSIT.name()); // ✅ .name()
+        return convertToResponse(deliveryRepository.save(delivery));
     }
 
-    // Mark Delivered
     @Transactional
     public DeliveryResponse markDelivered(Long deliveryId) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new RuntimeException("Delivery not found"));
-
-        delivery.setStatus(DeliveryStatus.DELIVERED);
+        Delivery delivery = findById(deliveryId);
+        delivery.setStatus(DeliveryStatus.DELIVERED.name()); // ✅ .name()
         delivery.setDeliveredAt(LocalDateTime.now());
+        deliveryRepository.save(delivery);
 
-        Delivery updatedDelivery = deliveryRepository.save(delivery);
+        if (delivery.getPartnerId() != null) {
+            partnerService.updatePartnerStats(
+                    delivery.getPartnerId(),
+                    delivery.getPartnerEarning(),
+                    5.0
+            );
+        }
 
-        // Update partner stats
-        partnerService.updatePartnerStats(
-                delivery.getPartnerId(),
-                delivery.getPartnerEarning(),
-                5.0 // Default rating, can be updated later
-        );
-
-        return convertToResponse(updatedDelivery);
-    }
-
-    // Get Delivery by ID
-    public DeliveryResponse getDeliveryById(Long id) {
-        Delivery delivery = deliveryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Delivery not found"));
         return convertToResponse(delivery);
     }
 
-    // Get Delivery by Order ID
+    public DeliveryResponse getDeliveryById(Long id) {
+        return convertToResponse(findById(id));
+    }
+
     public DeliveryResponse getDeliveryByOrderId(Long orderId) {
         Delivery delivery = deliveryRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Delivery not found for order"));
+                .orElseThrow(() -> new RuntimeException("Delivery not found for order: " + orderId));
         return convertToResponse(delivery);
     }
 
-    // Get Partner Deliveries
     public List<DeliveryResponse> getPartnerDeliveries(Long partnerId) {
-        List<Delivery> deliveries = deliveryRepository.findByPartnerId(partnerId);
-        return deliveries.stream()
+        return deliveryRepository.findByPartnerId(partnerId)
+                .stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    // Get Customer Deliveries
     public List<DeliveryResponse> getCustomerDeliveries(Long customerId) {
-        List<Delivery> deliveries = deliveryRepository.findByCustomerId(customerId);
-        return deliveries.stream()
+        return deliveryRepository.findByCustomerId(customerId)
+                .stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    // Convert Entity to Response
+    private Delivery findById(Long id) {
+        return deliveryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Delivery not found: " + id));
+    }
+
     private DeliveryResponse convertToResponse(Delivery delivery) {
         DeliveryResponse response = new DeliveryResponse();
         response.setId(delivery.getId());
@@ -170,7 +160,7 @@ public class DeliveryService {
         response.setPartnerId(delivery.getPartnerId());
         response.setRestaurantId(delivery.getRestaurantId());
         response.setCustomerId(delivery.getCustomerId());
-        response.setStatus(delivery.getStatus());
+        response.setStatus(delivery.getStatus()); // ✅ String as-is
         response.setPickupAddress(delivery.getPickupAddress());
         response.setDeliveryAddress(delivery.getDeliveryAddress());
         response.setDeliveryFee(delivery.getDeliveryFee());

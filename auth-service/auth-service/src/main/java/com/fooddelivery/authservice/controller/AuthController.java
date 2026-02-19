@@ -11,6 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -26,31 +29,97 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("Auth Service is running"));
     }
 
-    // Register User
+    // Register User - WITH BETTER ERROR HANDLING
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = authService.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        try {
+            AuthResponse response = authService.register(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            // Handle specific business logic errors
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+
+            String errorMessage = e.getMessage();
+
+            // Customize error messages
+            if (errorMessage.contains("email") && errorMessage.contains("exists")) {
+                errorResponse.put("message", "Email already registered. Please use a different email or login.");
+                errorResponse.put("field", "email");
+            } else if (errorMessage.contains("username") && errorMessage.contains("exists")) {
+                errorResponse.put("message", "Username already taken. Please choose a different username.");
+                errorResponse.put("field", "username");
+            } else if (errorMessage.contains("phone") && errorMessage.contains("exists")) {
+                errorResponse.put("message", "Phone number already registered. Please use a different number.");
+                errorResponse.put("field", "phone");
+            } else {
+                errorResponse.put("message", errorMessage);
+            }
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Registration failed. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
-    // Login User
+    // Login User - WITH BETTER ERROR HANDLING
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(
+    public ResponseEntity<?> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
 
-        String ipAddress = getClientIp(httpRequest);
-        String userAgent = httpRequest.getHeader("User-Agent");
+        try {
+            String ipAddress = getClientIp(httpRequest);
+            String userAgent = httpRequest.getHeader("User-Agent");
 
-        AuthResponse response = authService.login(request, ipAddress, userAgent);
-        return ResponseEntity.ok(response);
+            AuthResponse response = authService.login(request, ipAddress, userAgent);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+
+            String errorMessage = e.getMessage();
+
+            // Customize error messages
+            if (errorMessage.contains("Invalid") || errorMessage.contains("incorrect")) {
+                errorResponse.put("message", "Invalid email or password. Please try again.");
+            } else if (errorMessage.contains("not found") || errorMessage.contains("does not exist")) {
+                errorResponse.put("message", "Account not found. Please register first.");
+            } else if (errorMessage.contains("locked") || errorMessage.contains("disabled")) {
+                errorResponse.put("message", "Account is locked or disabled. Please contact support.");
+            } else {
+                errorResponse.put("message", errorMessage);
+            }
+
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Login failed. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     // Refresh Access Token
     @PostMapping("/refresh-token")
-    public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        AuthResponse response = authService.refreshToken(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        try {
+            AuthResponse response = authService.refreshToken(request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Invalid or expired refresh token. Please login again.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Token refresh failed. Please login again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     // Logout User
@@ -85,27 +154,63 @@ public class AuthController {
 
     // Change Password
     @PostMapping("/change-password")
-    public ResponseEntity<MessageResponse> changePassword(
+    public ResponseEntity<?> changePassword(
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody ChangePasswordRequest request) {
 
-        Long userId = extractUserIdFromToken(authHeader);
-        MessageResponse response = authService.changePassword(userId, request);
-        return ResponseEntity.ok(response);
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            MessageResponse response = authService.changePassword(userId, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Current password is incorrect. Please try again.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Password change failed. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     // Forgot Password
     @PostMapping("/forgot-password")
-    public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        MessageResponse response = authService.forgotPassword(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        try {
+            MessageResponse response = authService.forgotPassword(request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Email not found. Please check and try again.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Failed to send reset email. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     // Reset Password
     @PostMapping("/reset-password")
-    public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        MessageResponse response = authService.resetPassword(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        try {
+            MessageResponse response = authService.resetPassword(request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Invalid or expired reset token. Please request a new one.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Password reset failed. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     // Send Email Verification OTP
@@ -124,31 +229,53 @@ public class AuthController {
 
     // Verify OTP
     @PostMapping("/verify-otp")
-    public ResponseEntity<MessageResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
-        MessageResponse response = authService.verifyOtp(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        try {
+            MessageResponse response = authService.verifyOtp(request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Invalid or expired OTP. Please try again.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "OTP verification failed. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     // Get Current User Info (from token)
     @GetMapping("/me")
-    public ResponseEntity<UserInfoResponse> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.replace("Bearer ", "");
 
-        if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            if (!jwtUtil.validateToken(token)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "Invalid or expired token. Please login again.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+            }
+
+            Long userId = jwtUtil.extractUserId(token);
+            String email = jwtUtil.extractEmail(token);
+            String role = jwtUtil.extractRole(token);
+
+            UserInfoResponse response = UserInfoResponse.builder()
+                    .userId(userId)
+                    .email(email)
+                    .role(role)
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Failed to fetch user info. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
-
-        Long userId = jwtUtil.extractUserId(token);
-        String email = jwtUtil.extractEmail(token);
-        String role = jwtUtil.extractRole(token);
-
-        UserInfoResponse response = UserInfoResponse.builder()
-                .userId(userId)
-                .email(email)
-                .role(role)
-                .build();
-
-        return ResponseEntity.ok(response);
     }
 
     // Helper: Extract User ID from Authorization Header
