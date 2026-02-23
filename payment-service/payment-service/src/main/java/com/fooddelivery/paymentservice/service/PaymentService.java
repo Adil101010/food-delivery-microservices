@@ -3,6 +3,7 @@ package com.fooddelivery.paymentservice.service;
 import com.fooddelivery.paymentservice.dto.*;
 import com.fooddelivery.paymentservice.entity.Payment;
 import com.fooddelivery.paymentservice.entity.Transaction;
+import com.fooddelivery.paymentservice.enums.PaymentMethod;
 import com.fooddelivery.paymentservice.enums.PaymentStatus;
 import com.fooddelivery.paymentservice.enums.TransactionType;
 import com.fooddelivery.paymentservice.exception.BadRequestException;
@@ -13,7 +14,7 @@ import com.fooddelivery.paymentservice.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;  // ✅ CORRECT IMPORT
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,10 +36,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final TransactionRepository transactionRepository;
-    private final RestTemplate restTemplate;  //  INJECT RestTemplate
-
-
-//     * Create a new payment
+    private final RestTemplate restTemplate;
 
     @Transactional
     public PaymentResponse createPayment(CreatePaymentRequest request) {
@@ -45,10 +44,8 @@ public class PaymentService {
                 request.getOrderId(), request.getUserId(), request.getAmount());
 
         try {
-            // Validate request
             validateCreatePaymentRequest(request);
 
-            // Check if payment already exists for this order
             paymentRepository.findFirstByOrderIdOrderByCreatedAtDesc(request.getOrderId())
                     .ifPresent(existingPayment -> {
                         if (existingPayment.getStatus() == PaymentStatus.PENDING ||
@@ -59,7 +56,6 @@ public class PaymentService {
                         }
                     });
 
-            // Create payment entity
             Payment payment = Payment.builder()
                     .orderId(request.getOrderId())
                     .userId(request.getUserId())
@@ -78,7 +74,6 @@ public class PaymentService {
             Payment savedPayment = paymentRepository.save(payment);
             log.info("Payment created successfully with id: {}", savedPayment.getId());
 
-            // Create transaction record
             Transaction transaction = Transaction.builder()
                     .payment(savedPayment)
                     .type(TransactionType.PAYMENT)
@@ -100,9 +95,6 @@ public class PaymentService {
         }
     }
 
-
-//      Process payment (Mock gateway)
-
     @Transactional
     public PaymentResponse processPayment(Long paymentId) {
         log.info("Processing payment: {}", paymentId);
@@ -114,12 +106,10 @@ public class PaymentService {
             throw new BadRequestException("Payment cannot be processed. Current status: " + payment.getStatus());
         }
 
-        // Mock processing - In real scenario, call payment gateway
         payment.setStatus(PaymentStatus.PROCESSING);
         payment.setUpdatedAt(LocalDateTime.now());
         payment = paymentRepository.save(payment);
 
-        // Create transaction
         Transaction transaction = Transaction.builder()
                 .payment(payment)
                 .type(TransactionType.PAYMENT)
@@ -135,9 +125,6 @@ public class PaymentService {
         return mapToPaymentResponse(payment);
     }
 
-    /**
-     * Verify payment
-     */
     @Transactional
     public PaymentResponse verifyPayment(VerifyPaymentRequest request) {
         log.info("Verifying payment: {}", request.getPaymentId());
@@ -150,7 +137,6 @@ public class PaymentService {
             return mapToPaymentResponse(payment);
         }
 
-        // Mock verification - In real scenario, verify with gateway
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setGatewayPaymentId(request.getGatewayPaymentId());
         payment.setGatewaySignature(request.getGatewaySignature());
@@ -161,7 +147,6 @@ public class PaymentService {
 
         payment = paymentRepository.save(payment);
 
-        // Create success transaction
         Transaction transaction = Transaction.builder()
                 .payment(payment)
                 .type(TransactionType.PAYMENT)
@@ -174,16 +159,12 @@ public class PaymentService {
 
         transactionRepository.save(transaction);
 
-        // ✅ NOTIFY ORDER SERVICE AFTER VERIFICATION
         notifyOrderService(payment);
 
         log.info("Payment verified successfully: {}", request.getPaymentId());
         return mapToPaymentResponse(payment);
     }
 
-    /**
-     * Process refund
-     */
     @Transactional
     public PaymentResponse processRefund(RefundRequest request) {
         log.info("Processing refund for payment: {}, amount: {}",
@@ -200,13 +181,11 @@ public class PaymentService {
             throw new BadRequestException("Refund amount cannot exceed payment amount");
         }
 
-        // Check if already refunded
         if (payment.getRefundAmount() != null &&
                 payment.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
             throw new BadRequestException("Payment already refunded");
         }
 
-        // Process refund
         payment.setStatus(PaymentStatus.REFUNDED);
         payment.setRefundAmount(request.getRefundAmount());
         payment.setRefundTransactionId("REFUND_" + System.currentTimeMillis());
@@ -215,7 +194,6 @@ public class PaymentService {
 
         payment = paymentRepository.save(payment);
 
-        // Create refund transaction
         Transaction transaction = Transaction.builder()
                 .payment(payment)
                 .type(TransactionType.REFUND)
@@ -231,75 +209,137 @@ public class PaymentService {
         return mapToPaymentResponse(payment);
     }
 
-    /**
-     * Get payment by ID
-     */
-    public PaymentResponse getPaymentById(Long id) {
-        log.info("Fetching payment by id: {}", id);
+    // ---- COD ----
 
+    // Method signature update karo
+    @Transactional
+    public PaymentResponse processCOD(Long orderId, Long userId) {
+        log.info("Processing COD payment for orderId: {}, userId: {}", orderId, userId);
+
+        try {
+            Optional<Payment> existingOpt =
+                    paymentRepository.findFirstByOrderIdOrderByCreatedAtDesc(orderId);
+
+            if (existingOpt.isPresent()) {
+                Payment existing = existingOpt.get();
+                if (existing.getStatus() == PaymentStatus.SUCCESS) {
+                    throw new BadRequestException(
+                            "Payment already completed for order: " + orderId);
+                }
+                log.info("Deleting existing {} payment for orderId: {}",
+                        existing.getStatus(), orderId);
+                transactionRepository.deleteByPayment(existing);
+                paymentRepository.delete(existing);
+                paymentRepository.flush();
+            }
+
+            Payment payment = Payment.builder()
+                    .orderId(orderId)
+                    .userId(userId)        // userId add kiya
+                    .amount(BigDecimal.ZERO)
+                    .currency("INR")
+                    .paymentMethod(PaymentMethod.CASH_ON_DELIVERY)
+                    .status(PaymentStatus.PENDING)
+                    .paymentDescription("Cash on Delivery")
+                    .transactionId("COD_" + orderId + "_" + System.currentTimeMillis())
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            Payment savedPayment = paymentRepository.save(payment);
+
+            Transaction transaction = Transaction.builder()
+                    .payment(savedPayment)
+                    .type(TransactionType.PAYMENT)
+                    .amount(BigDecimal.ZERO)
+                    .status(PaymentStatus.PENDING)
+                    .description("COD order placed - payment on delivery")
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            transactionRepository.save(transaction);
+            notifyOrderServiceCOD(savedPayment);
+
+            log.info("COD payment created successfully for orderId: {}", orderId);
+            return mapToPaymentResponse(savedPayment);
+
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("COD processing failed for orderId: {}", orderId, e);
+            throw new PaymentException("COD processing failed: " + e.getMessage(), e);
+        }
+    }
+
+    private void notifyOrderServiceCOD(Payment payment) {
+        try {
+            String orderServiceUrl = "http://localhost:8088/api/orders/webhook/payment-status";
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("orderId", payment.getOrderId());
+            requestBody.put("paymentStatus", "CONFIRMED");
+            requestBody.put("paymentMethod", "CASH_ON_DELIVERY");
+            requestBody.put("transactionId", payment.getTransactionId());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    orderServiceUrl, entity, String.class);
+
+            log.info("Order Service notified for COD order: {}. Status: {}",
+                    payment.getOrderId(), response.getStatusCode());
+
+        } catch (Exception e) {
+            log.error("Failed to notify Order Service for COD order: {}. Error: {}",
+                    payment.getOrderId(), e.getMessage());
+        }
+    }
+
+    // ---- Getters ----
+
+    public PaymentResponse getPaymentById(Long id) {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", "id", id));
-
         return mapToPaymentResponse(payment);
     }
 
-    /**
-     * Get payment by order ID
-     */
     public PaymentResponse getPaymentByOrderId(Long orderId) {
-        log.info("Fetching payment by orderId: {}", orderId);
-
         Payment payment = paymentRepository.findFirstByOrderIdOrderByCreatedAtDesc(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", "orderId", orderId));
-
         return mapToPaymentResponse(payment);
     }
 
-    /**
-     * Get user payments
-     */
     public List<PaymentResponse> getUserPayments(Long userId) {
-        log.info("Fetching payments for userId: {}", userId);
-
-        List<Payment> payments = paymentRepository.findByUserIdOrderByCreatedAtDesc(userId);
-
-        return payments.stream()
+        return paymentRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
                 .map(this::mapToPaymentResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Get payment transactions
-     */
     public List<TransactionResponse> getPaymentTransactions(Long paymentId) {
-        log.info("Fetching transactions for paymentId: {}", paymentId);
-
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", "id", paymentId));
 
-        List<Transaction> transactions = transactionRepository.findByPaymentOrderByCreatedAtDesc(payment);
-
-        return transactions.stream()
+        return transactionRepository.findByPaymentOrderByCreatedAtDesc(payment)
+                .stream()
                 .map(this::mapToTransactionResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Validate create payment request
-     */
+    // ---- Private helpers ----
+
     private void validateCreatePaymentRequest(CreatePaymentRequest request) {
         if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("Amount must be greater than zero");
         }
-
         if (request.getAmount().compareTo(new BigDecimal("100000")) > 0) {
-            throw new BadRequestException("Amount cannot exceed ₹1,00,000");
+            throw new BadRequestException("Amount cannot exceed 1,00,000");
         }
     }
 
-    /**
-     * Map Payment entity to PaymentResponse
-     */
     private PaymentResponse mapToPaymentResponse(Payment payment) {
         return PaymentResponse.builder()
                 .id(payment.getId())
@@ -334,9 +374,6 @@ public class PaymentService {
                 .build();
     }
 
-    /**
-     * Map Transaction entity to TransactionResponse
-     */
     private TransactionResponse mapToTransactionResponse(Transaction transaction) {
         return TransactionResponse.builder()
                 .id(transaction.getId())
@@ -353,42 +390,29 @@ public class PaymentService {
                 .build();
     }
 
-    /**
-     * ✅ Notify Order Service after payment verification
-     */
     private void notifyOrderService(Payment payment) {
         try {
             String orderServiceUrl = "http://localhost:8088/api/orders/webhook/payment-status";
 
-            log.info("Notifying Order Service for order: {}", payment.getOrderId());
-
-            // Create request body
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("orderId", payment.getOrderId());
             requestBody.put("paymentStatus", payment.getStatus().name());
             requestBody.put("razorpayPaymentId", payment.getRazorpayPaymentId());
             requestBody.put("razorpayOrderId", payment.getRazorpayOrderId());
 
-            // Create headers
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Create HTTP entity
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            // Call Order Service webhook
             ResponseEntity<String> response = restTemplate.postForEntity(
-                    orderServiceUrl,
-                    entity,
-                    String.class
-            );
+                    orderServiceUrl, entity, String.class);
 
             log.info("Order Service notified successfully. Response: {}", response.getStatusCode());
 
         } catch (Exception e) {
             log.error("Failed to notify Order Service for order: {}. Error: {}",
                     payment.getOrderId(), e.getMessage(), e);
-            // Don't throw exception - webhook failure shouldn't fail payment
         }
     }
 }

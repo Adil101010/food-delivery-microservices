@@ -2,21 +2,22 @@ package com.fooddelivery.orderservice.repository;
 
 import com.fooddelivery.orderservice.entity.Order;
 import com.fooddelivery.orderservice.enums.OrderStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    List<Order> findByUserId(Long userId);
+    // Pagination
+    Page<Order> findByUserId(Long userId, Pageable pageable);
 
-    List<Order> findByRestaurantId(Long restaurantId);
+    Page<Order> findByRestaurantId(Long restaurantId, Pageable pageable);
 
-    List<Order> findByOrderStatus(OrderStatus orderStatus);
+    Page<Order> findByOrderStatus(OrderStatus orderStatus, Pageable pageable);
 
-    List<Order> findByUserIdAndOrderStatus(Long userId, OrderStatus orderStatus);
+    Page<Order> findByUserIdAndOrderStatus(Long userId, OrderStatus orderStatus, Pageable pageable);
 
-    List<Order> findByRestaurantIdAndOrderStatus(Long restaurantId, OrderStatus orderStatus);
+    Page<Order> findByRestaurantIdAndOrderStatus(Long restaurantId, OrderStatus orderStatus, Pageable pageable);
 }

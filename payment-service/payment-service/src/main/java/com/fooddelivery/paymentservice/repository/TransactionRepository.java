@@ -2,6 +2,7 @@ package com.fooddelivery.paymentservice.repository;
 
 import com.fooddelivery.paymentservice.entity.Payment;
 import com.fooddelivery.paymentservice.entity.Transaction;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,4 +14,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByPaymentOrderByCreatedAtDesc(Payment payment);
 
     List<Transaction> findByPayment_IdOrderByCreatedAtDesc(Long paymentId);
+
+    @Transactional
+    void deleteByPayment(Payment payment);
 }

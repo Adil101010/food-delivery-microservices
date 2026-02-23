@@ -11,11 +11,13 @@ import com.fooddelivery.orderservice.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -52,24 +54,48 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success("Order retrieved successfully", response));
     }
 
+    //  PAGINATION ADDED FOR USER ORDERS
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getUserOrders(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getUserOrders(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        log.info("Fetching orders for user: {}", userId);
+        log.info("Fetching orders for user: {} | page: {} | size: {}", userId, page, size);
 
-        List<OrderResponse> orders = orderService.getUserOrders(userId);
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("createdAt").descending()
+        );
 
-        return ResponseEntity.ok(ApiResponse.success("User orders retrieved successfully", orders));
+        Page<OrderResponse> orders = orderService.getUserOrders(userId, pageable);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("User orders retrieved successfully", orders)
+        );
     }
 
+    //  PAGINATION ADDED FOR RESTAURANT ORDERS
     @GetMapping("/restaurant/{restaurantId}")
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getRestaurantOrders(@PathVariable Long restaurantId) {
+    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getRestaurantOrders(
+            @PathVariable Long restaurantId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        log.info("Fetching orders for restaurant: {}", restaurantId);
+        log.info("Fetching orders for restaurant: {} | page: {} | size: {}", restaurantId, page, size);
 
-        List<OrderResponse> orders = orderService.getRestaurantOrders(restaurantId);
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("createdAt").descending()
+        );
 
-        return ResponseEntity.ok(ApiResponse.success("Restaurant orders retrieved successfully", orders));
+        Page<OrderResponse> orders = orderService.getRestaurantOrders(restaurantId, pageable);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Restaurant orders retrieved successfully", orders)
+        );
     }
 
     @PutMapping("/{orderId}/status")
@@ -95,13 +121,24 @@ public class OrderController {
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getOrdersByStatus(@PathVariable OrderStatus status) {
+    public ResponseEntity<ApiResponse<Page<OrderResponse>>> getOrdersByStatus(
+            @PathVariable OrderStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        log.info("Fetching orders with status: {}", status);
+        log.info("Fetching orders with status: {} | page: {} | size: {}", status, page, size);
 
-        List<OrderResponse> orders = orderService.getOrdersByStatus(status);
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("createdAt").descending()
+        );
 
-        return ResponseEntity.ok(ApiResponse.success("Orders retrieved successfully", orders));
+        Page<OrderResponse> orders = orderService.getOrdersByStatus(status, pageable);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Orders retrieved successfully", orders)
+        );
     }
 
     @PostMapping("/webhook/payment-status")
@@ -117,6 +154,8 @@ public class OrderController {
                 request.getRazorpayPaymentId()
         );
 
-        return ResponseEntity.ok(ApiResponse.success("Payment status updated successfully", response));
+        return ResponseEntity.ok(
+                ApiResponse.success("Payment status updated successfully", response)
+        );
     }
 }

@@ -195,4 +195,17 @@ public class PaymentController {
         MessageResponse message = new MessageResponse("Payment cancellation feature coming soon");
         return ResponseEntity.ok(com.fooddelivery.paymentservice.dto.ApiResponse.success("Request processed", message));
     }
+    //  COD endpoint add karo — existing methods ke baad
+    @PostMapping("/cod/{orderId}")
+    public ResponseEntity<com.fooddelivery.paymentservice.dto.ApiResponse<PaymentResponse>> processCOD(
+            @PathVariable Long orderId,
+            @RequestParam Long userId) {  // userId param add kiya
+        log.info("COD request received for orderId: {}, userId: {}", orderId, userId);
+        PaymentResponse payment = paymentService.processCOD(orderId, userId);
+        return ResponseEntity.ok(
+                com.fooddelivery.paymentservice.dto.ApiResponse.success(
+                        "COD order placed successfully", payment));
+    }
+
+
 }
