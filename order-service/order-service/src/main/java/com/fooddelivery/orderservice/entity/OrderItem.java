@@ -1,5 +1,7 @@
 package com.fooddelivery.orderservice.entity;
 
+import com.fooddelivery.orderservice.enums.OrderStatus;
+import com.fooddelivery.orderservice.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,6 +13,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderItem {
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_status", length = 25, nullable = false)
+    private OrderStatus orderStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", length = 25, nullable = false)
+    private PaymentStatus paymentStatus;
+
+    @Column(name = "payment_method", length = 25)
+    private String paymentMethod;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

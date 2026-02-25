@@ -1,6 +1,7 @@
 package com.fooddelivery.orderservice.enums;
 
 public enum OrderStatus {
+    PENDING_PAYMENT,
     PENDING,
     CONFIRMED,
     PREPARING,

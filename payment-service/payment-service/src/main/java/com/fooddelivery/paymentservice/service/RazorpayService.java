@@ -65,6 +65,13 @@ public class RazorpayService {
     @Value("${order.service.url:http://localhost:8084}")
     private String orderServiceUrl;
 
+    //  Internal Secret
+    @Value("${internal.secret}")
+    private String internalSecret;
+
+    // ─────────────────────────────────────────
+    // CREATE ORDER
+    // ─────────────────────────────────────────
     @Transactional
     public PaymentOrderResponse createOrder(PaymentOrderRequest request) {
         log.info("Creating Razorpay order for orderId: {}, userId: {}, amount: {}",
@@ -87,7 +94,8 @@ public class RazorpayService {
             JSONObject orderRequest = new JSONObject();
             orderRequest.put("amount", convertToRazorpayAmount(request.getAmount()));
             orderRequest.put("currency", currency);
-            orderRequest.put("receipt", "ORDER_" + request.getOrderId() + "_" + System.currentTimeMillis());
+            orderRequest.put("receipt", "ORDER_" + request.getOrderId()
+                    + "_" + System.currentTimeMillis());
 
             Order razorpayOrder = razorpayClient.orders.create(orderRequest);
             String razorpayOrderId = razorpayOrder.get("id");
@@ -110,7 +118,7 @@ public class RazorpayService {
                     .build();
 
             Payment savedPayment = paymentRepository.save(payment);
-            log.info("Payment record saved in database with id: {}", savedPayment.getId());
+            log.info("Payment record saved with id: {}", savedPayment.getId());
 
             Transaction transaction = Transaction.builder()
                     .payment(savedPayment)
@@ -144,7 +152,7 @@ public class RazorpayService {
                             .callbackUrl(callbackUrl)
                             .build();
 
-            PaymentOrderResponse response = PaymentOrderResponse.builder()
+            return PaymentOrderResponse.builder()
                     .razorpayOrderId(razorpayOrderId)
                     .orderId(request.getOrderId())
                     .amount(request.getAmount())
@@ -157,9 +165,6 @@ public class RazorpayService {
                     .paymentOptions(paymentOptions)
                     .createdAt(LocalDateTime.now())
                     .build();
-
-            log.info("Payment order response created successfully for orderId: {}", request.getOrderId());
-            return response;
 
         } catch (BadRequestException e) {
             log.error("Bad request while creating order: {}", e.getMessage());
@@ -175,6 +180,9 @@ public class RazorpayService {
         }
     }
 
+
+    // VERIFY PAYMENT
+
     @Transactional
     public PaymentVerificationResponse verifyPayment(PaymentVerificationRequest request) {
         log.info("Verifying payment for razorpayOrderId: {}, paymentId: {}",
@@ -183,39 +191,34 @@ public class RazorpayService {
         try {
             Payment payment = paymentRepository.findByRazorpayOrderId(request.getRazorpayOrderId())
                     .orElseThrow(() -> new ResourceNotFoundException(
-                            "Payment",
-                            "razorpayOrderId",
-                            request.getRazorpayOrderId()
-                    ));
+                            "Payment", "razorpayOrderId", request.getRazorpayOrderId()));
 
-            log.info("Payment found in database: paymentId={}, status={}",
-                    payment.getId(), payment.getStatus());
+            log.info("Payment found: paymentId={}, status={}", payment.getId(), payment.getStatus());
 
+            // Duplicate verify protection
             if (payment.getStatus() == PaymentStatus.SUCCESS) {
-                log.warn("Payment already verified for razorpayOrderId: {}", request.getRazorpayOrderId());
+                log.warn("Payment already verified for razorpayOrderId: {}",
+                        request.getRazorpayOrderId());
                 return buildSuccessResponse(payment);
             }
 
-            boolean isValidSignature = false;
+            boolean isValidSignature;
 
             if (testMode) {
                 log.warn("TEST MODE: Skipping signature verification for razorpayOrderId: {}",
                         request.getRazorpayOrderId());
                 isValidSignature = true;
             } else {
-                log.info("PRODUCTION MODE: Verifying signature for razorpayOrderId: {}",
-                        request.getRazorpayOrderId());
-
+                log.info("PRODUCTION MODE: Verifying signature...");
                 JSONObject options = new JSONObject();
                 options.put("razorpay_order_id", request.getRazorpayOrderId());
                 options.put("razorpay_payment_id", request.getRazorpayPaymentId());
                 options.put("razorpay_signature", request.getRazorpaySignature());
-
                 isValidSignature = Utils.verifyPaymentSignature(options, keySecret);
             }
 
             if (isValidSignature) {
-                log.info("Payment signature verified successfully for razorpayOrderId: {}",
+                log.info(" Signature verified for razorpayOrderId: {}",
                         request.getRazorpayOrderId());
 
                 payment.setStatus(PaymentStatus.SUCCESS);
@@ -226,7 +229,7 @@ public class RazorpayService {
                 payment.setUpdatedAt(LocalDateTime.now());
 
                 Payment updatedPayment = paymentRepository.save(payment);
-                log.info("Payment status updated to SUCCESS for paymentId: {}", updatedPayment.getId());
+                log.info("Payment updated to SUCCESS for paymentId: {}", updatedPayment.getId());
 
                 Transaction transaction = Transaction.builder()
                         .payment(updatedPayment)
@@ -238,8 +241,8 @@ public class RazorpayService {
                         .build();
 
                 transactionRepository.save(transaction);
-                log.info("Success transaction record created for payment id: {}", updatedPayment.getId());
 
+                // Order-service ko notify kra
                 updateOrderPaymentStatus(
                         updatedPayment.getOrderId(),
                         PaymentStatus.SUCCESS,
@@ -249,13 +252,20 @@ public class RazorpayService {
                 return buildSuccessResponse(updatedPayment);
 
             } else {
-                log.error("Payment signature verification FAILED for razorpayOrderId: {}",
+                log.error(" Signature verification FAILED for razorpayOrderId: {}",
                         request.getRazorpayOrderId());
 
                 payment.setStatus(PaymentStatus.FAILED);
                 payment.setFailureReason("Signature verification failed");
                 payment.setUpdatedAt(LocalDateTime.now());
                 paymentRepository.save(payment);
+
+                //  Order-service ko FAILED notify kara
+                updateOrderPaymentStatus(
+                        payment.getOrderId(),
+                        PaymentStatus.FAILED,
+                        null
+                );
 
                 Transaction transaction = Transaction.builder()
                         .payment(payment)
@@ -269,7 +279,7 @@ public class RazorpayService {
                 transactionRepository.save(transaction);
 
                 throw new PaymentException(
-                        "Payment signature verification failed. Invalid signature.",
+                        "Payment signature verification failed.",
                         "SIGNATURE_VERIFICATION_FAILED"
                 );
             }
@@ -288,30 +298,41 @@ public class RazorpayService {
         }
     }
 
-    private void updateOrderPaymentStatus(Long orderId, PaymentStatus status, String razorpayPaymentId) {
+
+    // UPDATE ORDER STATUS —  Secret Header + PAID/FAILED
+
+    private void updateOrderPaymentStatus(Long orderId,
+                                          PaymentStatus status,
+                                          String razorpayPaymentId) {
         try {
             String webhookUrl = orderServiceUrl + "/api/orders/webhook/payment-status";
-            log.info("Calling Order Service webhook: {} for orderId: {}", webhookUrl, orderId);
+            log.info("Calling Order Service: {} for orderId: {}", webhookUrl, orderId);
 
             Map<String, Object> webhookRequest = new HashMap<>();
             webhookRequest.put("orderId", orderId);
-            webhookRequest.put("paymentStatus", status);
+
+            //  SUCCESS → PAID, FAILED → FAILED
+            webhookRequest.put("paymentStatus",
+                    status == PaymentStatus.SUCCESS ? "PAID" : "FAILED");
             webhookRequest.put("razorpayPaymentId", razorpayPaymentId);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            //  Internal secret header
+            headers.set("X-Internal-Secret", internalSecret);
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(webhookRequest, headers);
-
             restTemplate.postForEntity(webhookUrl, request, String.class);
 
-            log.info("Order Service webhook called successfully for orderId: {}", orderId);
+            log.info(" Order Service updated successfully for orderId: {}", orderId);
 
         } catch (Exception e) {
-            log.error("Failed to update order payment status for orderId: {}. Error: {}",
-                    orderId, e.getMessage(), e);
+            log.error("Failed to update order: {}. Error: {}", orderId, e.getMessage());
         }
     }
+
+
+    // GET PAYMENT BY RAZORPAY ORDER ID
 
     public Payment getPaymentByRazorpayOrderId(String razorpayOrderId) {
         log.info("Fetching payment by razorpayOrderId: {}", razorpayOrderId);
@@ -322,11 +343,11 @@ public class RazorpayService {
 
         return paymentRepository.findByRazorpayOrderId(razorpayOrderId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Payment",
-                        "razorpayOrderId",
-                        razorpayOrderId
-                ));
+                        "Payment", "razorpayOrderId", razorpayOrderId));
     }
+
+
+    // GET PAYMENT BY ORDER ID
 
     public Payment getPaymentByOrderId(Long orderId) {
         log.info("Fetching payment by orderId: {}", orderId);
@@ -337,53 +358,47 @@ public class RazorpayService {
 
         return paymentRepository.findFirstByOrderIdOrderByCreatedAtDesc(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Payment",
-                        "orderId",
-                        orderId
-                ));
+                        "Payment", "orderId", orderId));
     }
+
+
+    // VALIDATE ORDER REQUEST
 
     private void validateOrderRequest(PaymentOrderRequest request) {
         log.debug("Validating payment order request");
 
-        if (request.getOrderId() == null || request.getOrderId() <= 0) {
+        if (request.getOrderId() == null || request.getOrderId() <= 0)
             throw new BadRequestException("Order ID must be a positive number");
-        }
 
-        if (request.getUserId() == null || request.getUserId() <= 0) {
+        if (request.getUserId() == null || request.getUserId() <= 0)
             throw new BadRequestException("User ID must be a positive number");
-        }
 
-        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0)
             throw new BadRequestException("Amount must be greater than zero");
-        }
 
-        if (request.getAmount().compareTo(new BigDecimal("1")) < 0) {
+        if (request.getAmount().compareTo(new BigDecimal("1")) < 0)
             throw new BadRequestException("Amount must be at least ₹1");
-        }
 
-        if (request.getAmount().compareTo(new BigDecimal("100000")) > 0) {
+        if (request.getAmount().compareTo(new BigDecimal("100000")) > 0)
             throw new BadRequestException("Amount cannot exceed ₹1,00,000");
-        }
 
-        if (request.getCustomerName() == null || request.getCustomerName().isBlank()) {
+        if (request.getCustomerName() == null || request.getCustomerName().isBlank())
             throw new BadRequestException("Customer name is required");
-        }
 
         if (request.getCustomerEmail() == null ||
-                !request.getCustomerEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                !request.getCustomerEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$"))
             throw new BadRequestException("Valid email address is required");
-        }
 
         if (request.getCustomerPhone() == null ||
-                !request.getCustomerPhone().matches("^[6-9]\\d{9}$")) {
+                !request.getCustomerPhone().matches("^[6-9]\\d{9}$"))
             throw new BadRequestException(
-                    "Valid 10-digit mobile number starting with 6-9 is required"
-            );
-        }
+                    "Valid 10-digit mobile number starting with 6-9 is required");
 
-        log.debug("Payment order request validation successful");
+        log.debug("Validation successful");
     }
+
+
+    // HELPERS
 
     private int convertToRazorpayAmount(BigDecimal amount) {
         return amount.multiply(new BigDecimal("100")).intValue();

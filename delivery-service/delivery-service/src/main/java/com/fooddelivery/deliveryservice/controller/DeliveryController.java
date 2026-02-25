@@ -6,6 +6,8 @@ import com.fooddelivery.deliveryservice.dto.MessageResponse;
 import com.fooddelivery.deliveryservice.service.DeliveryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,9 +18,14 @@ import java.util.List;
 @RequestMapping("/api/deliveries")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
+@Slf4j
 public class DeliveryController {
 
     private final DeliveryService deliveryService;
+
+    //  Internal secret
+    @Value("${internal.secret}")
+    private String internalSecret;
 
     // Health Check
     @GetMapping("/health")
@@ -98,12 +105,22 @@ public class DeliveryController {
         List<DeliveryResponse> deliveries = deliveryService.getCustomerDeliveries(customerId);
         return ResponseEntity.ok(deliveries);
     }
-    // ✅ Order service ya manually call kar sake
+
+    //  Sirf order-service call kar sake
     @PostMapping("/order/{orderId}/create-pending")
-    public ResponseEntity<DeliveryResponse> createPendingDelivery(
-            @PathVariable Long orderId) {
+    public ResponseEntity<?> createPendingDelivery(
+            @PathVariable Long orderId,
+            @RequestHeader(value = "X-Internal-Secret", required = false) String secret) {
+
+        //  Secret validate
+        if (secret == null || !secret.equals(internalSecret)) {
+            log.error("Unauthorized createPendingDelivery attempt for order: {}", orderId);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new MessageResponse("Unauthorized request"));
+        }
+
+        log.info("Creating pending delivery for order: {}", orderId);
         DeliveryResponse delivery = deliveryService.createPendingDelivery(orderId);
         return ResponseEntity.ok(delivery);
     }
-
 }

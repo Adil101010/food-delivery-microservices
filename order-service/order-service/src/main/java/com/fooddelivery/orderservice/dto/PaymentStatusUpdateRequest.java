@@ -24,4 +24,5 @@ public class PaymentStatusUpdateRequest {
     private String razorpayPaymentId;
 
     private String razorpaySignature;
+
 }

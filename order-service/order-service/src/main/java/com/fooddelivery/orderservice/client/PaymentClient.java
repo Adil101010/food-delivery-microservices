@@ -2,26 +2,30 @@ package com.fooddelivery.orderservice.client;
 
 import com.fooddelivery.orderservice.dto.PaymentOrderRequest;
 import com.fooddelivery.orderservice.dto.PaymentOrderResponse;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class PaymentClient {
 
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${payment.service.url}")
     private String paymentServiceUrl;
+
+    //   Internal secret
+    @Value("${internal.secret}")
+    private String internalSecret;
+
+    public PaymentClient(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     public PaymentOrderResponse createPaymentOrder(PaymentOrderRequest request) {
         String url = paymentServiceUrl + "/api/payments/razorpay/create-order";
@@ -30,16 +34,23 @@ public class PaymentClient {
         log.info("Request: orderId={}, amount={}", request.getOrderId(), request.getAmount());
 
         try {
-            // Call Payment Service
-            Map<String, Object> response = restTemplate.postForObject(url, request, Map.class);
+            //  Internal secret header
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("X-Internal-Secret", internalSecret);
+
+            HttpEntity<PaymentOrderRequest> entity = new HttpEntity<>(request, headers);
+
+            ResponseEntity<Map> responseEntity = restTemplate.exchange(
+                    url, HttpMethod.POST, entity, Map.class);
+
+            Map<String, Object> response = responseEntity.getBody();
 
             log.info("Payment Service raw response: {}", response);
 
             if (response != null && response.containsKey("data")) {
-                // Extract data from ApiResponse wrapper
                 Map<String, Object> data = (Map<String, Object>) response.get("data");
 
-                // Convert to PaymentOrderResponse
                 PaymentOrderResponse paymentResponse = PaymentOrderResponse.builder()
                         .razorpayOrderId((String) data.get("razorpayOrderId"))
                         .orderId(request.getOrderId())

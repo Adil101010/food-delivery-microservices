@@ -44,7 +44,6 @@ public class Order {
     private Double deliveryFee;
 
     private Double tax;
-
     private Double discount;
 
     @Column(nullable = false)
@@ -52,7 +51,7 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus orderStatus = OrderStatus.PENDING;
+    private OrderStatus orderStatus = OrderStatus.PENDING_PAYMENT;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -73,7 +72,6 @@ public class Order {
     private String customerName;
 
     private LocalDateTime estimatedDeliveryTime;
-
     private LocalDateTime deliveredAt;
 
     @CreationTimestamp
@@ -83,19 +81,6 @@ public class Order {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    // Helper method to add items
-    public void addItem(OrderItem item) {
-        items.add(item);
-        item.setOrder(this);
-    }
-
-    // Helper method to remove items
-    public void removeItem(OrderItem item) {
-        items.remove(item);
-        item.setOrder(null);
-    }
-
-    // Add these fields to Order entity
     @Column(name = "razorpay_order_id")
     private String razorpayOrderId;
 
@@ -105,4 +90,14 @@ public class Order {
     @Column(name = "customer_email")
     private String customerEmail;
 
+    // Helper methods
+    public void addItem(OrderItem item) {
+        items.add(item);
+        item.setOrder(this);
+    }
+
+    public void removeItem(OrderItem item) {
+        items.remove(item);
+        item.setOrder(null);
+    }
 }
