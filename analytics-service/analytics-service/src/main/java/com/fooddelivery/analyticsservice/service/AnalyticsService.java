@@ -49,6 +49,138 @@ public class AnalyticsService {
 
         return stats;
     }
+    // AnalyticsService.java mein add karo
+    public List<Map<String, Object>> getRestaurantWeeklyRevenue(Long restaurantId) {
+        String query = """
+        SELECT DATE(created_at) as date,
+               COALESCE(SUM(total_amount), 0) as revenue
+        FROM orders
+        WHERE restaurant_id = :rid
+          AND order_status = 'DELIVERED'
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+        """;
+
+        List<Object[]> rows = entityManager.createNativeQuery(query)
+                .setParameter("rid", restaurantId)
+                .getResultList();
+
+        return rows.stream().map(row -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("date", row[0].toString());
+            item.put("revenue", toBigDecimal(row[1]));
+            return item;
+        }).toList();
+    }
+
+    public Map<String, Object> getRestaurantRevenue(Long restaurantId, String from, String to) {
+        Map<String, Object> result = new HashMap<>();
+
+        // Today
+        Object todayRev = entityManager.createNativeQuery(
+                        "SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE restaurant_id = :rid AND order_status = 'DELIVERED' AND DATE(created_at) = CURDATE()")
+                .setParameter("rid", restaurantId).getSingleResult();
+
+        // Weekly
+        Object weeklyRev = entityManager.createNativeQuery(
+                        "SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE restaurant_id = :rid AND order_status = 'DELIVERED' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")
+                .setParameter("rid", restaurantId).getSingleResult();
+
+        // Monthly
+        Object monthlyRev = entityManager.createNativeQuery(
+                        "SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE restaurant_id = :rid AND order_status = 'DELIVERED' AND MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())")
+                .setParameter("rid", restaurantId).getSingleResult();
+
+        // Total (with optional date filter)
+        Object totalRev;
+        if (from != null && to != null) {
+            totalRev = entityManager.createNativeQuery(
+                            "SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE restaurant_id = :rid AND order_status = 'DELIVERED' AND DATE(created_at) BETWEEN :from AND :to")
+                    .setParameter("rid", restaurantId)
+                    .setParameter("from", from)
+                    .setParameter("to", to)
+                    .getSingleResult();
+        } else {
+            totalRev = entityManager.createNativeQuery(
+                            "SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE restaurant_id = :rid AND order_status = 'DELIVERED'")
+                    .setParameter("rid", restaurantId).getSingleResult();
+        }
+
+        result.put("todayRevenue", toBigDecimal(todayRev));
+        result.put("weeklyRevenue", toBigDecimal(weeklyRev));   // ✅ Added
+        result.put("monthlyRevenue", toBigDecimal(monthlyRev)); // ✅ Added
+        result.put("totalRevenue", toBigDecimal(totalRev));
+        result.put("restaurantId", restaurantId);
+        return result;
+    }
+
+    public Map<String, Object> getRestaurantOrderStats(Long restaurantId) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalOrders", count("SELECT COUNT(*) FROM orders WHERE restaurant_id = :rid", restaurantId));
+        result.put("todayOrders", count("SELECT COUNT(*) FROM orders WHERE restaurant_id = :rid AND DATE(created_at) = CURDATE()", restaurantId));
+        result.put("pendingOrders", count("SELECT COUNT(*) FROM orders WHERE restaurant_id = :rid AND order_status IN ('PENDING','CONFIRMED','PREPARING','READY')", restaurantId));
+        result.put("completedOrders", count("SELECT COUNT(*) FROM orders WHERE restaurant_id = :rid AND order_status = 'DELIVERED'", restaurantId));
+        result.put("cancelledOrders", count("SELECT COUNT(*) FROM orders WHERE restaurant_id = :rid AND order_status = 'CANCELLED'", restaurantId));
+        return result;
+    }
+
+    public List<Map<String, Object>> getRestaurantTopItems(Long restaurantId, int limit) {
+        String query = """
+        SELECT mi.name, COUNT(oi.id) as orderCount, SUM(oi.quantity) as totalQty,
+               SUM(oi.subtotal) as totalRevenue
+        FROM order_items oi
+        JOIN menu_items mi ON oi.menu_item_id = mi.id
+        JOIN orders o ON oi.order_id = o.id
+        WHERE o.restaurant_id = :rid AND o.order_status = 'DELIVERED'
+        GROUP BY mi.id, mi.name
+        ORDER BY totalQty DESC
+        LIMIT :limit
+        """;
+        List<Object[]> rows = entityManager.createNativeQuery(query)
+                .setParameter("rid", restaurantId)
+                .setParameter("limit", limit)
+                .getResultList();
+
+        return rows.stream().map(row -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("name", row[0]);
+            item.put("orderCount", ((Number) row[1]).longValue());
+            item.put("totalQuantity", ((Number) row[2]).longValue());
+            item.put("totalRevenue", toBigDecimal(row[3]));
+            return item;
+        }).toList();
+    }
+
+    public List<Map<String, Object>> getRestaurantRecentOrders(Long restaurantId, int limit) {
+        List<Object[]> rows = entityManager.createNativeQuery(
+                        "SELECT id, order_status, total_amount, created_at FROM orders WHERE restaurant_id = :rid ORDER BY created_at DESC LIMIT :limit")
+                .setParameter("rid", restaurantId)
+                .setParameter("limit", limit)
+                .getResultList();
+
+        return rows.stream().map(row -> {
+            Map<String, Object> o = new HashMap<>();
+            o.put("orderId", ((Number) row[0]).longValue());
+            o.put("status", row[1]);
+            o.put("totalAmount", toBigDecimal(row[2]));
+            o.put("createdAt", row[3] != null ? row[3].toString() : null);
+            return o;
+        }).toList();
+    }
+
+    // Helper
+    private BigDecimal toBigDecimal(Object val) {
+        if (val == null) return BigDecimal.ZERO;
+        if (val instanceof BigDecimal) return (BigDecimal) val;
+        return BigDecimal.valueOf(((Number) val).doubleValue());
+    }
+
+    private long count(String sql, Long restaurantId) {
+        return ((Number) entityManager.createNativeQuery(sql)
+                .setParameter("rid", restaurantId).getSingleResult()).longValue();
+    }
+
 
     // Order Analytics
     public OrderAnalytics getOrderAnalytics() {

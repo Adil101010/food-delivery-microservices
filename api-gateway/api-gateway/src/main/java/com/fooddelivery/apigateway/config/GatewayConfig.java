@@ -16,16 +16,36 @@ public class GatewayConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
+
                 // ========== PUBLIC ROUTES (No JWT) ==========
+
+                // Auth Service — No JWT
                 .route("auth-service", r -> r
                         .path("/api/auth/**")
                         .uri("http://localhost:8097"))
+
+                // Analytics Service — No JWT (dashboard ke liye)
+                .route("analytics-service", r -> r
+                        .path("/api/analytics/**")
+                        .uri("http://localhost:8093"))  // ✅ Fixed port
 
                 // ========== PROTECTED ROUTES (JWT Required) ==========
 
                 // User Service
                 .route("user-service", r -> r
                         .path("/api/users/**")
+                        .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
+                        .uri("http://localhost:8081"))
+
+                // Address Service
+                .route("address-service", r -> r
+                        .path("/api/addresses/**")
+                        .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
+                        .uri("http://localhost:8081"))
+
+                // Favorites Service
+                .route("favorites-service", r -> r
+                        .path("/api/favorites/**")
                         .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
                         .uri("http://localhost:8081"))
 
@@ -37,8 +57,9 @@ public class GatewayConfig {
 
                 // Menu Service
                 .route("menu-service", r -> r
-                        .path("/api/menus/**")
-                        .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
+                        .path("/api/menu/**")
+                        .filters(f -> f
+                                .filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
                         .uri("http://localhost:8083"))
 
                 // Order Service
@@ -56,6 +77,12 @@ public class GatewayConfig {
                 // Delivery Service
                 .route("delivery-service", r -> r
                         .path("/api/deliveries/**")
+                        .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
+                        .uri("http://localhost:8086"))
+
+                // Delivery Partner Service
+                .route("delivery-partner-service", r -> r
+                        .path("/api/delivery/partners/**")
                         .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
                         .uri("http://localhost:8086"))
 
@@ -105,17 +132,11 @@ public class GatewayConfig {
                 .route("wallet-service", r -> r
                         .path("/api/wallet/**")
                         .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
-                        .uri("http://localhost:8093"))
+                        .uri("http://localhost:8094"))
 
                 // Settlement Service
                 .route("settlement-service", r -> r
                         .path("/api/settlements/**")
-                        .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
-                        .uri("http://localhost:8094"))
-
-                // Analytics Service
-                .route("analytics-service", r -> r
-                        .path("/api/analytics/**")
                         .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
                         .uri("http://localhost:8095"))
 
@@ -125,8 +146,18 @@ public class GatewayConfig {
                         .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
                         .uri("http://localhost:8096"))
 
+                // Admin Service
+                .route("admin-service", r -> r
+                        .path("/api/admin/**")
+                        .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
+                        .uri("http://localhost:8098"))
+
+                // Search Service
+                .route("search-service", r -> r
+                        .path("/api/search/**")
+                        .filters(f -> f.filter(jwtFilter.apply(new JwtAuthenticationFilter.Config())))
+                        .uri("http://localhost:8099"))
+
                 .build();
     }
-
-    // NO CORS BEAN - Auth Service will handle CORS!
 }

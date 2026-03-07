@@ -22,4 +22,6 @@ public class AuthResponse {
     private Long refreshTokenExpiresIn;
     private Boolean isEmailVerified;
     private Boolean isPhoneVerified;
+    private Long restaurantId;
+    private String restaurantName;
 }

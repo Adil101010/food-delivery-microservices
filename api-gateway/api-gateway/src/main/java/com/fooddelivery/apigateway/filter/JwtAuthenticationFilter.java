@@ -28,6 +28,8 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
     private static final List<String> OPEN_ENDPOINTS = Arrays.asList(
             "/api/auth/login",
             "/api/auth/register",
+            "/api/auth/restaurant/login",
+            "/api/auth/refresh-token",
             "/api/restaurants",
             "/api/menu",
             "/api/reviews/restaurant",

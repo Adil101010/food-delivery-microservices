@@ -17,7 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+
 public class AuthController {
 
     private final AuthService authService;
@@ -245,6 +245,14 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
+    @PostMapping("/restaurant/login")
+    public ResponseEntity<?> restaurantLogin(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
+        return login(request, httpRequest); // existing login method call karo
+    }
+
 
     // Get Current User Info (from token)
     @GetMapping("/me")
